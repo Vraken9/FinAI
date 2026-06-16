@@ -1,0 +1,133 @@
+import 'dart:io';
+import 'package:dio/dio.dart' as dio;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../core/exceptions/app_exception.dart';
+import '../../core/services/supabase_service.dart';
+import '../models/parsed_transaction.dart';
+
+class AiRepository {
+  final SupabaseClient _client;
+  final dio.Dio _dio;
+
+  AiRepository()
+      : _client = SupabaseService().client,
+        _dio = dio.Dio(dio.BaseOptions(
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+        ));
+
+  String? get _accessToken {
+    return _client.auth.currentSession?.accessToken;
+  }
+
+  void _checkAuth() {
+    if (_accessToken == null) {
+      throw ApiException('Sesi habis, silakan login kembali', code: 'UNAUTHORIZED');
+    }
+  }
+
+  Future<ParsedTransaction> parseText(String text, String defaultAssetId) async {
+    _checkAuth();
+
+    try {
+      final response = await _client.functions.invoke(
+        'ai-parse-text',
+        body: {
+          'text': text,
+          'default_asset_id': defaultAssetId,
+        },
+      );
+
+      final data = response.data;
+      if (data['success'] == true && data['data'] != null) {
+        return ParsedTransaction.fromJson(data['data']);
+      } else {
+        throw ApiException(data['error'] ?? 'Gagal memproses teks', code: data['code'] ?? 'PARSE_FAILED');
+      }
+    } on FunctionException catch (e) {
+      final message = e.reasonPhrase ?? 'Terjadi kesalahan pada layanan AI';
+      throw ApiException(message, code: 'EXTERNAL_API_ERROR');
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Terjadi kesalahan tidak terduga', code: 'UNKNOWN');
+    }
+  }
+
+  Future<ParsedTransaction> parseVoice(File audioFile, String defaultAssetId) async {
+    return _parseMultipart('ai-parse-voice', 'audio', audioFile, defaultAssetId);
+  }
+
+  Future<ParsedTransaction> parseImage(File imageFile, String defaultAssetId) async {
+    return _parseMultipart('ai-parse-image', 'image', imageFile, defaultAssetId);
+  }
+
+  Future<ParsedTransaction> _parseMultipart(String functionName, String fileField, File file, String defaultAssetId) async {
+    _checkAuth();
+
+    final url = '${const String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://placeholder.supabase.co')}/functions/v1/$functionName';
+    
+    try {
+      final formData = dio.FormData.fromMap({
+        'default_asset_id': defaultAssetId,
+        fileField: await dio.MultipartFile.fromFile(file.path),
+      });
+
+      final response = await _dio.post(
+        url,
+        data: formData,
+        options: dio.Options(
+          headers: {
+            'Authorization': 'Bearer $_accessToken',
+            'apikey': dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+          },
+        ),
+      );
+
+      final data = response.data;
+      if (data['success'] == true && data['data'] != null) {
+        return ParsedTransaction.fromJson(data['data']);
+      } else {
+        throw ApiException(data['error'] ?? 'Gagal memproses request', code: data['code'] ?? 'PARSE_FAILED');
+      }
+    } on dio.DioException catch (e) {
+      if (e.type == dio.DioExceptionType.connectionTimeout || e.type == dio.DioExceptionType.receiveTimeout) {
+        throw ApiException('AI sedang sibuk. Kamu tetap bisa isi manual.', code: 'EXTERNAL_API_ERROR');
+      }
+      
+      final responseData = e.response?.data;
+      if (responseData is Map && responseData['error'] != null) {
+        throw ApiException(responseData['error'], code: responseData['code'] ?? 'EXTERNAL_API_ERROR');
+      }
+      
+      throw ApiException('Terjadi kesalahan koneksi', code: 'NETWORK_ERROR');
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Terjadi kesalahan tidak terduga', code: 'UNKNOWN');
+    }
+  }
+
+  Future<String> sendChatMessage(String message, List<Map<String, dynamic>> history) async {
+    _checkAuth();
+
+    try {
+      final response = await _client.functions.invoke(
+        'ai-chat',
+        body: {
+          'message': message,
+          'history': history,
+        },
+      );
+
+      final data = response.data;
+      if (data['success'] == true) {
+        return data['reply'] ?? '';
+      } else {
+        throw ApiException(data['error'] ?? 'Gagal memproses chat', code: data['code'] ?? 'CHAT_FAILED');
+      }
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Terjadi kesalahan koneksi', code: 'EXTERNAL_API_ERROR');
+    }
+  }
+}

@@ -1,0 +1,26 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'asset_provider.dart';
+
+// **************************************************************************
+// RiverpodGenerator
+// **************************************************************************
+
+String _$assetNotifierHash() => r'255f54e7920203d7ca2f5eb2de064519427912ca';
+
+/// See also [AssetNotifier].
+@ProviderFor(AssetNotifier)
+final assetNotifierProvider =
+    AutoDisposeAsyncNotifierProvider<AssetNotifier, List<Asset>>.internal(
+  AssetNotifier.new,
+  name: r'assetNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$assetNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$AssetNotifier = AutoDisposeAsyncNotifier<List<Asset>>;
+// ignore_for_file: type=lint
+// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member
