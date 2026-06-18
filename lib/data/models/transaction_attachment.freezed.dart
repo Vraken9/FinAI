@@ -23,8 +23,12 @@ TransactionAttachment _$TransactionAttachmentFromJson(
 mixin _$TransactionAttachment {
   String get id => throw _privateConstructorUsedError;
   String get transactionId => throw _privateConstructorUsedError;
-  String get fileUrl => throw _privateConstructorUsedError;
+  String get userId => throw _privateConstructorUsedError;
+  String get filePath => throw _privateConstructorUsedError;
+  String get fileName => throw _privateConstructorUsedError;
   String get fileType => throw _privateConstructorUsedError;
+  int get fileSizeBytes => throw _privateConstructorUsedError;
+  bool get isReceipt => throw _privateConstructorUsedError;
   DateTime? get createdAt => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -42,8 +46,12 @@ abstract class $TransactionAttachmentCopyWith<$Res> {
   $Res call(
       {String id,
       String transactionId,
-      String fileUrl,
+      String userId,
+      String filePath,
+      String fileName,
       String fileType,
+      int fileSizeBytes,
+      bool isReceipt,
       DateTime? createdAt});
 }
 
@@ -63,8 +71,12 @@ class _$TransactionAttachmentCopyWithImpl<$Res,
   $Res call({
     Object? id = null,
     Object? transactionId = null,
-    Object? fileUrl = null,
+    Object? userId = null,
+    Object? filePath = null,
+    Object? fileName = null,
     Object? fileType = null,
+    Object? fileSizeBytes = null,
+    Object? isReceipt = null,
     Object? createdAt = freezed,
   }) {
     return _then(_value.copyWith(
@@ -76,14 +88,30 @@ class _$TransactionAttachmentCopyWithImpl<$Res,
           ? _value.transactionId
           : transactionId // ignore: cast_nullable_to_non_nullable
               as String,
-      fileUrl: null == fileUrl
-          ? _value.fileUrl
-          : fileUrl // ignore: cast_nullable_to_non_nullable
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      filePath: null == filePath
+          ? _value.filePath
+          : filePath // ignore: cast_nullable_to_non_nullable
+              as String,
+      fileName: null == fileName
+          ? _value.fileName
+          : fileName // ignore: cast_nullable_to_non_nullable
               as String,
       fileType: null == fileType
           ? _value.fileType
           : fileType // ignore: cast_nullable_to_non_nullable
               as String,
+      fileSizeBytes: null == fileSizeBytes
+          ? _value.fileSizeBytes
+          : fileSizeBytes // ignore: cast_nullable_to_non_nullable
+              as int,
+      isReceipt: null == isReceipt
+          ? _value.isReceipt
+          : isReceipt // ignore: cast_nullable_to_non_nullable
+              as bool,
       createdAt: freezed == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -104,8 +132,12 @@ abstract class _$$TransactionAttachmentImplCopyWith<$Res>
   $Res call(
       {String id,
       String transactionId,
-      String fileUrl,
+      String userId,
+      String filePath,
+      String fileName,
       String fileType,
+      int fileSizeBytes,
+      bool isReceipt,
       DateTime? createdAt});
 }
 
@@ -123,8 +155,12 @@ class __$$TransactionAttachmentImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? transactionId = null,
-    Object? fileUrl = null,
+    Object? userId = null,
+    Object? filePath = null,
+    Object? fileName = null,
     Object? fileType = null,
+    Object? fileSizeBytes = null,
+    Object? isReceipt = null,
     Object? createdAt = freezed,
   }) {
     return _then(_$TransactionAttachmentImpl(
@@ -136,14 +172,30 @@ class __$$TransactionAttachmentImplCopyWithImpl<$Res>
           ? _value.transactionId
           : transactionId // ignore: cast_nullable_to_non_nullable
               as String,
-      fileUrl: null == fileUrl
-          ? _value.fileUrl
-          : fileUrl // ignore: cast_nullable_to_non_nullable
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      filePath: null == filePath
+          ? _value.filePath
+          : filePath // ignore: cast_nullable_to_non_nullable
+              as String,
+      fileName: null == fileName
+          ? _value.fileName
+          : fileName // ignore: cast_nullable_to_non_nullable
               as String,
       fileType: null == fileType
           ? _value.fileType
           : fileType // ignore: cast_nullable_to_non_nullable
               as String,
+      fileSizeBytes: null == fileSizeBytes
+          ? _value.fileSizeBytes
+          : fileSizeBytes // ignore: cast_nullable_to_non_nullable
+              as int,
+      isReceipt: null == isReceipt
+          ? _value.isReceipt
+          : isReceipt // ignore: cast_nullable_to_non_nullable
+              as bool,
       createdAt: freezed == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -159,8 +211,12 @@ class _$TransactionAttachmentImpl implements _TransactionAttachment {
   const _$TransactionAttachmentImpl(
       {required this.id,
       required this.transactionId,
-      required this.fileUrl,
+      required this.userId,
+      required this.filePath,
+      required this.fileName,
       required this.fileType,
+      required this.fileSizeBytes,
+      this.isReceipt = false,
       this.createdAt});
 
   factory _$TransactionAttachmentImpl.fromJson(Map<String, dynamic> json) =>
@@ -171,15 +227,24 @@ class _$TransactionAttachmentImpl implements _TransactionAttachment {
   @override
   final String transactionId;
   @override
-  final String fileUrl;
+  final String userId;
+  @override
+  final String filePath;
+  @override
+  final String fileName;
   @override
   final String fileType;
+  @override
+  final int fileSizeBytes;
+  @override
+  @JsonKey()
+  final bool isReceipt;
   @override
   final DateTime? createdAt;
 
   @override
   String toString() {
-    return 'TransactionAttachment(id: $id, transactionId: $transactionId, fileUrl: $fileUrl, fileType: $fileType, createdAt: $createdAt)';
+    return 'TransactionAttachment(id: $id, transactionId: $transactionId, userId: $userId, filePath: $filePath, fileName: $fileName, fileType: $fileType, fileSizeBytes: $fileSizeBytes, isReceipt: $isReceipt, createdAt: $createdAt)';
   }
 
   @override
@@ -190,17 +255,25 @@ class _$TransactionAttachmentImpl implements _TransactionAttachment {
             (identical(other.id, id) || other.id == id) &&
             (identical(other.transactionId, transactionId) ||
                 other.transactionId == transactionId) &&
-            (identical(other.fileUrl, fileUrl) || other.fileUrl == fileUrl) &&
+            (identical(other.userId, userId) || other.userId == userId) &&
+            (identical(other.filePath, filePath) ||
+                other.filePath == filePath) &&
+            (identical(other.fileName, fileName) ||
+                other.fileName == fileName) &&
             (identical(other.fileType, fileType) ||
                 other.fileType == fileType) &&
+            (identical(other.fileSizeBytes, fileSizeBytes) ||
+                other.fileSizeBytes == fileSizeBytes) &&
+            (identical(other.isReceipt, isReceipt) ||
+                other.isReceipt == isReceipt) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt));
   }
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, transactionId, fileUrl, fileType, createdAt);
+  int get hashCode => Object.hash(runtimeType, id, transactionId, userId,
+      filePath, fileName, fileType, fileSizeBytes, isReceipt, createdAt);
 
   @JsonKey(ignore: true)
   @override
@@ -221,8 +294,12 @@ abstract class _TransactionAttachment implements TransactionAttachment {
   const factory _TransactionAttachment(
       {required final String id,
       required final String transactionId,
-      required final String fileUrl,
+      required final String userId,
+      required final String filePath,
+      required final String fileName,
       required final String fileType,
+      required final int fileSizeBytes,
+      final bool isReceipt,
       final DateTime? createdAt}) = _$TransactionAttachmentImpl;
 
   factory _TransactionAttachment.fromJson(Map<String, dynamic> json) =
@@ -233,9 +310,17 @@ abstract class _TransactionAttachment implements TransactionAttachment {
   @override
   String get transactionId;
   @override
-  String get fileUrl;
+  String get userId;
+  @override
+  String get filePath;
+  @override
+  String get fileName;
   @override
   String get fileType;
+  @override
+  int get fileSizeBytes;
+  @override
+  bool get isReceipt;
   @override
   DateTime? get createdAt;
   @override

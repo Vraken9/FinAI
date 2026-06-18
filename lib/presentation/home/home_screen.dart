@@ -38,7 +38,7 @@ class HomeScreen extends ConsumerWidget {
                     DailyExpenseChart(),
                     AiDailyInsight(),
                     RecentTransactions(),
-                    SizedBox(height: 32),
+                    SizedBox(height: 180), // Extra padding agar FAB tengah tidak menutupi konten terakhir
                   ],
                 ),
               ),

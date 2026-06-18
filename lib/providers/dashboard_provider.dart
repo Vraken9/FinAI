@@ -1,4 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../core/extensions/transaction_extension.dart';
+import 'transaction_provider.dart';
 
 part 'dashboard_provider.g.dart';
 
@@ -30,14 +32,34 @@ class DashboardSummary extends _$DashboardSummary {
 class DailyExpenseChartData extends _$DailyExpenseChartData {
   @override
   List<Map<String, dynamic>> build() {
-    // Mock 7 days data for the chart
+    final transactionsState = ref.watch(transactionNotifierProvider);
+    final transactions = transactionsState.valueOrNull ?? [];
+    
     final now = DateTime.now();
-    return List.generate(7, (index) {
-      final date = now.subtract(Duration(days: 6 - index));
-      return {
-        'date': date,
-        'amount': 150000 + (index * 25000) - (index % 2 == 0 ? 50000 : 0),
-      };
-    });
+    final today = DateTime(now.year, now.month, now.day);
+    
+    final Map<DateTime, int> dailyTotals = {};
+    for (int i = 6; i >= 0; i--) {
+      dailyTotals[today.subtract(Duration(days: i))] = 0;
+    }
+    
+    for (final tx in transactions) {
+      final expenseAmt = tx.effectiveExpenseAmount;
+      if (expenseAmt > 0) {
+        final txDate = DateTime(tx.transactionDate.year, tx.transactionDate.month, tx.transactionDate.day);
+        if (dailyTotals.containsKey(txDate)) {
+          dailyTotals[txDate] = dailyTotals[txDate]! + expenseAmt;
+        }
+      }
+    }
+    
+    final result = dailyTotals.entries.map((e) => {
+      'date': e.key,
+      'amount': e.value,
+    }).toList();
+    
+    // Sort by date ascending to ensure correct chart order
+    result.sort((a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
+    return result;
   }
 }

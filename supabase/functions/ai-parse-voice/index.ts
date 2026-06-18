@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callGemini } from "../_shared/gemini.ts";
+import { callGemini, uint8ArrayToBase64 } from "../_shared/gemini.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -58,7 +58,7 @@ serve(async (req) => {
 
   // Encode audio ke base64
   const audioBuffer = await audioFile.arrayBuffer();
-  const audioBase64 = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+  const audioBase64 = uint8ArrayToBase64(new Uint8Array(audioBuffer));
   const mimeType = audioFile.type || "audio/webm"; // fallback jika mime tidak terdeteksi
 
   // Ambil kategori user
@@ -92,17 +92,27 @@ Balas HANYA dengan JSON valid tanpa markdown:
   "ambiguity": string atau null
 }`;
 
-  const rawText = await callGemini({
-    model: Deno.env.get("GEMINI_MODEL_MULTIMODAL")!,
-    contents: [{
-      role: "user",
-      parts: [
-        { inlineData: { mimeType, data: audioBase64 } },
-        { text: prompt },
-      ],
-    }],
-    generationConfig: { maxOutputTokens: 600 },
-  });
+  let rawText = "";
+  try {
+    rawText = await callGemini({
+      model: Deno.env.get("GEMINI_MODEL_MULTIMODAL")!,
+      contents: [{
+        role: "user",
+        parts: [
+          { inlineData: { mimeType, data: audioBase64 } },
+          { text: prompt },
+        ],
+      }],
+      generationConfig: { maxOutputTokens: 600 },
+    });
+  } catch (error) {
+    console.error("Gemini API Error:", error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: "Gagal memproses audio. Layanan AI sedang sibuk atau error.",
+      code: "EXTERNAL_API_ERROR",
+    }), { status: 422 });
+  }
 
   try {
     const parsed = JSON.parse(rawText.trim());

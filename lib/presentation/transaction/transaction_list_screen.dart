@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
+import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_text_styles.dart';
+import '../../core/extensions/currency_extension.dart';
+import '../../core/extensions/transaction_extension.dart';
+import '../../data/models/transaction.dart';
 import '../../providers/transaction_provider.dart';
 import '../common/widgets/transaction_list_item.dart';
 import '../common/widgets/empty_state.dart';
@@ -17,6 +23,13 @@ class TransactionListScreen extends ConsumerStatefulWidget {
 
 class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
   String _searchQuery = '';
+  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+
+  void _changeMonth(int offset) {
+    setState(() {
+      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + offset);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,18 +39,43 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
       appBar: AppBar(
         title: const Text('Semua Transaksi'),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Cari catatan, merchant, kategori...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          preferredSize: const Size.fromHeight(110),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.chevron_left),
+                      onPressed: () => _changeMonth(-1),
+                    ),
+                    Text(
+                      DateFormat('MMMM yyyy').format(_selectedMonth),
+                      style: AppTextStyles.headline1.copyWith(fontSize: 16),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right),
+                      onPressed: () => _changeMonth(1),
+                    ),
+                  ],
+                ),
               ),
-              onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
-            ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Cari catatan, merchant, kategori...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
+                  onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
           ),
         ),
       ),
@@ -45,7 +83,11 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
         onRefresh: () => ref.read(transactionNotifierProvider.notifier).refresh(),
         child: transactionsState.when(
           data: (transactions) {
+            // Filter by month and search query
             final filtered = transactions.where((t) {
+              if (t.transactionDate.year != _selectedMonth.year || t.transactionDate.month != _selectedMonth.month) {
+                return false;
+              }
               final searchStr = _searchQuery;
               if (searchStr.isEmpty) return true;
               return (t.note?.toLowerCase().contains(searchStr) ?? false) ||
@@ -58,13 +100,65 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
               return const EmptyState(message: 'Tidak ada transaksi ditemukan');
             }
 
+            // Group by Date
+            final Map<String, List<Transaction>> grouped = {};
+            for (var t in filtered) {
+              final dateStr = DateFormat('yyyy-MM-dd').format(t.transactionDate);
+              if (!grouped.containsKey(dateStr)) {
+                grouped[dateStr] = [];
+              }
+              grouped[dateStr]!.add(t);
+            }
+
+            final sortedDates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
+
             return ListView.builder(
-              itemCount: filtered.length,
+              padding: const EdgeInsets.only(bottom: 180),
+              itemCount: sortedDates.length,
               itemBuilder: (context, index) {
-                final tx = filtered[index];
-                return TransactionListItem(
-                  transaction: tx,
-                  onTap: () => context.push('/transaction/${tx.id}'),
+                final dateStr = sortedDates[index];
+                final dayTransactions = grouped[dateStr]!;
+                
+                int dayIncome = 0;
+                int dayExpense = 0;
+                for (var t in dayTransactions) {
+                  if (t.type == TransactionType.income) {
+                    dayIncome += t.amount;
+                  } else {
+                    dayExpense += t.effectiveExpenseAmount;
+                  }
+                }
+
+                final displayDate = DateFormat('dd MMMM yyyy').format(DateTime.parse(dateStr));
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      color: AppColors.surface,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(displayDate, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.bold)),
+                          Row(
+                            children: [
+                              if (dayIncome > 0)
+                                Text('+${dayIncome.toCurrency()}', style: TextStyle(color: AppColors.income, fontSize: 12, fontWeight: FontWeight.bold)),
+                              if (dayIncome > 0 && dayExpense > 0)
+                                const Text('  |  ', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                              if (dayExpense > 0)
+                                Text('-${dayExpense.toCurrency()}', style: TextStyle(color: AppColors.expense, fontSize: 12, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    ...dayTransactions.map((tx) => TransactionListItem(
+                          transaction: tx,
+                          onTap: () => context.push('/transaction/${tx.id}'),
+                        )),
+                  ],
                 );
               },
             );
@@ -75,10 +169,6 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
             onRetry: () => ref.read(transactionNotifierProvider.notifier).refresh(),
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/transaction/add'),
-        child: const Icon(Icons.add),
       ),
     );
   }

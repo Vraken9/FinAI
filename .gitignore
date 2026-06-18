@@ -51,3 +51,4 @@ app.*.map.json
 supabase/.temp/
 *.jks
 finai-prd/
+android/app/google-services.json

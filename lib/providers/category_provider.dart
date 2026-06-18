@@ -22,4 +22,11 @@ class CategoryNotifier extends _$CategoryNotifier {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _fetchCategories());
   }
+
+  Future<Category> addCategory(Category category) async {
+    final newCategory = await _repository.createCategory(category);
+    final currentCategories = state.valueOrNull ?? [];
+    state = AsyncValue.data([...currentCategories, newCategory]);
+    return newCategory;
+  }
 }

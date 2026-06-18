@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:camera/camera.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../providers/ai_provider.dart';
 
 class AiScanScreen extends ConsumerStatefulWidget {
@@ -64,11 +65,28 @@ class _AiScanScreenState extends ConsumerState<AiScanScreen> {
       setState(() {
         _imageFile = File(image.path);
       });
-      _submit(_imageFile!);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Gagal mengambil gambar')),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        setState(() {
+          _imageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal mengambil gambar dari galeri')),
         );
       }
     }
@@ -163,26 +181,41 @@ class _AiScanScreenState extends ConsumerState<AiScanScreen> {
                     const Text('Pastikan seluruh struk terlihat dan pencahayaan cukup', style: TextStyle(color: Colors.white70, fontSize: 14), textAlign: TextAlign.center),
                   const SizedBox(height: 16),
                   if (_imageFile == null)
-                    GestureDetector(
-                      onTap: _takePicture,
-                      child: Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 4),
-                        ),
-                        child: Center(
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Expanded(child: SizedBox()),
+                        GestureDetector(
+                          onTap: _takePicture,
                           child: Container(
-                            width: 56,
-                            height: 56,
-                            decoration: const BoxDecoration(
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.white,
+                              border: Border.all(color: Colors.white, width: 4),
+                            ),
+                            child: Center(
+                              child: Container(
+                                width: 56,
+                                height: 56,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: IconButton(
+                              icon: const Icon(Icons.photo_library, color: Colors.white, size: 32),
+                              onPressed: _pickFromGallery,
+                            ),
+                          ),
+                        ),
+                      ],
                     )
                   else if (!isLoading)
                     Row(

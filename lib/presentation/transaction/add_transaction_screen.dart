@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_text_styles.dart';
 import '../../core/services/supabase_service.dart';
 import '../../data/models/asset.dart';
 import '../../data/models/category.dart';
@@ -25,8 +24,17 @@ import 'widgets/type_toggle.dart';
 
 class AddTransactionScreen extends ConsumerStatefulWidget {
   final String? initialType;
+  final Transaction? initialTransaction;
+  final ParsedTransaction? initialParsed;
+  final File? initialImage;
 
-  const AddTransactionScreen({super.key, this.initialType});
+  const AddTransactionScreen({
+    super.key, 
+    this.initialType, 
+    this.initialTransaction,
+    this.initialParsed,
+    this.initialImage,
+  });
 
   @override
   ConsumerState<AddTransactionScreen> createState() => _AddTransactionScreenState();
@@ -58,7 +66,27 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   @override
   void initState() {
     super.initState();
-    _type = widget.initialType ?? 'expense';
+    final tx = widget.initialTransaction;
+    if (tx != null) {
+      _type = tx.type.name;
+      _amountController.text = tx.amount.toString();
+      _date = tx.transactionDate;
+      _category = tx.category;
+      _asset = tx.asset;
+      _transferToAsset = tx.transferToAsset;
+      if (tx.transferFee != null) _transferFeeController.text = tx.transferFee.toString();
+      if (tx.note != null) _noteController.text = tx.note!;
+      if (tx.description != null) _descController.text = tx.description!;
+      if (tx.merchant != null) _merchantController.text = tx.merchant!;
+    } else {
+      _type = widget.initialType ?? 'expense';
+    }
+
+    if (widget.initialParsed != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _handleAiParsed(widget.initialParsed!, widget.initialImage);
+      });
+    }
   }
 
   @override
@@ -157,7 +185,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       final userId = supabase.auth.currentUser?.id ?? '';
 
       final transaction = Transaction(
-        id: '', // handle default in backend if uuid is generated
+        id: widget.initialTransaction?.id ?? '', // handle default in backend if uuid is generated
         userId: userId, 
         type: TransactionType.values.firstWhere((e) => e.name == _type),
         amount: amount,
@@ -175,7 +203,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         createdAt: DateTime.now(),
       );
 
-      final savedTransaction = await ref.read(transactionNotifierProvider.notifier).addTransaction(transaction);
+      Transaction savedTransaction;
+      if (widget.initialTransaction != null) {
+        await ref.read(transactionNotifierProvider.notifier).updateTransaction(widget.initialTransaction!.id, transaction);
+        savedTransaction = transaction.copyWith(id: widget.initialTransaction!.id);
+      } else {
+        savedTransaction = await ref.read(transactionNotifierProvider.notifier).addTransaction(transaction);
+      }
       final transactionId = savedTransaction.id;
       
       int failedUploads = 0;
@@ -187,12 +221,35 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           
           await supabase.storage.from('transaction-attachments').move(_pendingAttachmentPath!, finalPath);
           
+          final fileExtension = fileName.split('.').last.toLowerCase();
+          String fileType = 'application/pdf';
+          if (fileExtension == 'jpg' || fileExtension == 'jpeg') fileType = 'image/jpeg';
+          else if (fileExtension == 'png') fileType = 'image/png';
+          
           await supabase.from('transaction_attachments').insert({
             'transaction_id': transactionId,
+            'user_id': userId,
             'file_path': finalPath,
+            'file_name': fileName,
+            'file_type': fileType,
+            'file_size_bytes': 0, // Pending file size is unknown on client side without downloading
           });
         } catch (e) {
+          debugPrint('Upload pending attachment error: $e');
           failedUploads++;
+        }
+      }
+
+      if (widget.initialTransaction != null && _attachments.isNotEmpty) {
+        final oldAttachments = widget.initialTransaction!.attachments ?? [];
+        if (oldAttachments.isNotEmpty) {
+          try {
+            final oldPaths = oldAttachments.map((a) => a.filePath).toList();
+            await supabase.storage.from('transaction-attachments').remove(oldPaths);
+            await supabase.from('transaction_attachments').delete().eq('transaction_id', widget.initialTransaction!.id);
+          } catch (e) {
+            debugPrint('Failed to delete old attachments: $e');
+          }
         }
       }
 
@@ -203,16 +260,30 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           
           await supabase.storage.from('transaction-attachments').upload(fullPath, file);
           
+          final fileExtension = file.path.split('.').last.toLowerCase();
+          String fileType = 'application/pdf'; // default fallback
+          if (fileExtension == 'jpg' || fileExtension == 'jpeg') {
+            fileType = 'image/jpeg';
+          } else if (fileExtension == 'png') {
+            fileType = 'image/png';
+          }
+          
           await supabase.from('transaction_attachments').insert({
             'transaction_id': transactionId,
+            'user_id': userId,
             'file_path': fullPath,
+            'file_name': file.path.split('/').last,
+            'file_type': fileType,
+            'file_size_bytes': await file.length(),
           });
         } catch (e) {
+          debugPrint('Upload attachment error: $e');
           failedUploads++;
         }
       }
       
       if (mounted) {
+        ref.read(transactionNotifierProvider.notifier).refresh();
         context.pop();
         if (failedUploads > 0) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Transaksi berhasil disimpan, namun $failedUploads lampiran gagal diunggah. Kamu bisa menambahkan lampiran lagi dari halaman detail transaksi.')));
@@ -233,8 +304,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tambah Transaksi'),
+        title: Text(widget.initialTransaction != null ? 'Edit Transaksi' : 'Tambah Transaksi'),
       ),
+      floatingActionButton: AiFillButton(onAiParsed: _handleAiParsed),
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -249,19 +321,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                     if (_type == 'transfer') _category = null;
                   });
                 },
-              ),
-              const SizedBox(height: 24),
-              AiFillButton(onAiParsed: _handleAiParsed),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  const Expanded(child: Divider()),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('Atau isi manual', style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
-                  ),
-                  const Expanded(child: Divider()),
-                ],
               ),
               const SizedBox(height: 24),
               

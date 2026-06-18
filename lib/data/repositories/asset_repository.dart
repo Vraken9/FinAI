@@ -25,8 +25,12 @@ class AssetRepository {
     data.remove('updated_at');
     data.remove('deleted_at');
     
-    // Cleanup any null values to ensure Supabase uses DB defaults
-    data.removeWhere((key, value) => value == null);
+    if (data['user_id'] == '') {
+      data['user_id'] = _client.auth.currentUser?.id;
+    }
+    
+    // Cleanup any null values or empty strings for UUID fields to ensure Supabase uses DB defaults
+    data.removeWhere((key, value) => value == null || (key == 'id' && value == ''));
 
     final response = await _client
         .from('assets')

@@ -67,21 +67,13 @@ class _SetupAssetsScreenState extends ConsumerState<SetupAssetsScreen> {
           backgroundColor: AppColors.expense,
         ),
       );
-    } catch (e, stackTrace) {
+    } catch (e) {
+      debugPrint('Setup asset error: $e');
       if (!mounted) return;
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Debug Error'),
-          content: SingleChildScrollView(
-            child: Text('${e.runtimeType}\n\n$e\n\nStack:\n$stackTrace'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context), 
-              child: const Text('Tutup'),
-            ),
-          ],
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal menyiapkan dompet: $e'),
+          backgroundColor: AppColors.expense,
         ),
       );
     } finally {

@@ -6,7 +6,7 @@ part of 'dashboard_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$dashboardSummaryHash() => r'3d236de76ec1a13513aa921f61f7be074e435915';
+String _$dashboardSummaryHash() => r'bb27a0982a7389a317a3e76f7bfc591ea4cc702c';
 
 /// See also [DashboardSummary].
 @ProviderFor(DashboardSummary)
@@ -23,7 +23,7 @@ final dashboardSummaryProvider = AutoDisposeNotifierProvider<DashboardSummary,
 
 typedef _$DashboardSummary = AutoDisposeNotifier<Map<String, dynamic>>;
 String _$dailyExpenseChartDataHash() =>
-    r'b2fee9623609ee8b1cbfc2e386fe6f706d608919';
+    r'3a80a3aa7b3f93f554ec51f0565718277449f3d4';
 
 /// See also [DailyExpenseChartData].
 @ProviderFor(DailyExpenseChartData)

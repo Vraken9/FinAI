@@ -10,8 +10,12 @@ class TransactionAttachment with _$TransactionAttachment {
   const factory TransactionAttachment({
     required String id,
     required String transactionId,
-    required String fileUrl,
+    required String userId,
+    required String filePath,
+    required String fileName,
     required String fileType,
+    required int fileSizeBytes,
+    @Default(false) bool isReceipt,
     DateTime? createdAt,
   }) = _TransactionAttachment;
 

@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../constants/app_colors.dart';
 import '../../presentation/home/home_screen.dart';
+import '../../presentation/common/layouts/main_scaffold.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../presentation/auth/login_screen.dart';
@@ -11,7 +13,10 @@ import '../../presentation/auth/register_screen.dart';
 import '../../presentation/auth/pin_lock_screen.dart';
 import '../../presentation/onboarding/welcome_screen.dart';
 import '../../presentation/onboarding/setup_assets_screen.dart';
+import '../../presentation/analytics/analytics_screen.dart';
 
+import '../../data/models/transaction.dart';
+import '../../data/models/parsed_transaction.dart';
 import '../../presentation/transaction/add_transaction_screen.dart';
 import '../../presentation/transaction/transaction_detail_screen.dart';
 import '../../presentation/transaction/transaction_list_screen.dart';
@@ -56,6 +61,28 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/onboarding', builder: (context, state) => const WelcomeScreen()),
       GoRoute(path: '/onboarding/setup-assets', builder: (context, state) => const SetupAssetsScreen()),
       
+      GoRoute(
+        path: '/transaction/add',
+        builder: (context, state) {
+          Transaction? tx;
+          ParsedTransaction? parsed;
+          File? image;
+          if (state.extra is Transaction) {
+            tx = state.extra as Transaction;
+          } else if (state.extra is Map<String, dynamic>) {
+            final map = state.extra as Map<String, dynamic>;
+            parsed = map['parsed'] as ParsedTransaction?;
+            image = map['image'] as File?;
+          }
+          return AddTransactionScreen(
+            initialType: state.uri.queryParameters['type'],
+            initialTransaction: tx,
+            initialParsed: parsed,
+            initialImage: image,
+          );
+        }
+      ),
+
       ShellRoute(
         builder: (context, state, child) => MainScaffold(child: child),
         routes: [
@@ -67,12 +94,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/transaction/list',
             builder: (context, state) => const TransactionListScreen()
-          ),
-          GoRoute(
-            path: '/transaction/add',
-            builder: (context, state) => AddTransactionScreen(
-              initialType: state.uri.queryParameters['type'],
-            )
           ),
           GoRoute(
             path: '/transaction/:id',
@@ -94,9 +115,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 // Dummy Screens to pass analyze (untuk screen yg belum dibuat)
 class SplashScreen extends StatelessWidget { const SplashScreen({super.key}); @override Widget build(BuildContext context) => const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.primaryAccent))); }
-class MainScaffold extends StatelessWidget { final Widget child; const MainScaffold({super.key, required this.child}); @override Widget build(BuildContext context) => Scaffold(body: child); }
 
-class AnalyticsScreen extends StatelessWidget { const AnalyticsScreen({super.key}); @override Widget build(BuildContext context) => const Scaffold(); }
 class ChatbotScreen extends StatelessWidget { const ChatbotScreen({super.key}); @override Widget build(BuildContext context) => const Scaffold(); }
 class SettingsScreen extends StatelessWidget { const SettingsScreen({super.key}); @override Widget build(BuildContext context) => const Scaffold(); }
 class BudgetScreen extends StatelessWidget { const BudgetScreen({super.key}); @override Widget build(BuildContext context) => const Scaffold(); }

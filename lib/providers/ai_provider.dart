@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../data/repositories/ai_repository.dart';
@@ -51,8 +52,8 @@ class AiParseNotifier extends StateNotifier<AiParseState> {
       final defaultAssetId = await _getDefaultAssetId();
       final result = await _repository.parseText(text, defaultAssetId);
       state = AiParseState.success(result);
-    } catch (e) {
-      _handleError(e);
+    } catch (e, st) {
+      _handleError(e, st);
     }
   }
 
@@ -62,8 +63,8 @@ class AiParseNotifier extends StateNotifier<AiParseState> {
       final defaultAssetId = await _getDefaultAssetId();
       final result = await _repository.parseVoice(audio, defaultAssetId);
       state = AiParseState.success(result);
-    } catch (e) {
-      _handleError(e);
+    } catch (e, st) {
+      _handleError(e, st);
     }
   }
 
@@ -73,12 +74,13 @@ class AiParseNotifier extends StateNotifier<AiParseState> {
       final defaultAssetId = await _getDefaultAssetId();
       final result = await _repository.parseImage(image, defaultAssetId);
       state = AiParseState.success(result);
-    } catch (e) {
-      _handleError(e);
+    } catch (e, st) {
+      _handleError(e, st);
     }
   }
 
-  void _handleError(Object e) {
+  void _handleError(Object e, [StackTrace? stackTrace]) {
+    debugPrint('AiParseNotifier Error: $e\n$stackTrace');
     if (e is ApiException) {
       state = AiParseState.error(e.userFriendlyMessage, isRetryable: e.isRetryable);
     } else {

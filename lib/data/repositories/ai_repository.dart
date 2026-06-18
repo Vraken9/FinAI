@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart' as dio;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
 import '../../core/exceptions/app_exception.dart';
 import '../../core/services/supabase_service.dart';
 import '../models/parsed_transaction.dart';
@@ -46,9 +47,11 @@ class AiRepository {
         throw ApiException(data['error'] ?? 'Gagal memproses teks', code: data['code'] ?? 'PARSE_FAILED');
       }
     } on FunctionException catch (e) {
+      debugPrint('FunctionException in parseText: Status: ${e.status}, Reason: ${e.reasonPhrase}, Details: ${e.details}');
       final message = e.reasonPhrase ?? 'Terjadi kesalahan pada layanan AI';
       throw ApiException(message, code: 'EXTERNAL_API_ERROR');
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('Error in parseText: $e\n$stackTrace');
       if (e is ApiException) rethrow;
       throw ApiException('Terjadi kesalahan tidak terduga', code: 'UNKNOWN');
     }
@@ -65,7 +68,14 @@ class AiRepository {
   Future<ParsedTransaction> _parseMultipart(String functionName, String fileField, File file, String defaultAssetId) async {
     _checkAuth();
 
-    final url = '${const String.fromEnvironment('SUPABASE_URL', defaultValue: 'https://placeholder.supabase.co')}/functions/v1/$functionName';
+    final baseUrl = dotenv.env['SUPABASE_URL'];
+    if (baseUrl == null || baseUrl.isEmpty) {
+      throw ApiException(
+        'Konfigurasi aplikasi tidak lengkap. Hubungi developer.',
+        code: 'CONFIG_ERROR',
+      );
+    }
+    final url = '$baseUrl/functions/v1/$functionName';
     
     try {
       final formData = dio.FormData.fromMap({
@@ -91,6 +101,7 @@ class AiRepository {
         throw ApiException(data['error'] ?? 'Gagal memproses request', code: data['code'] ?? 'PARSE_FAILED');
       }
     } on dio.DioException catch (e) {
+      debugPrint('DioException in _parseMultipart: Status: ${e.response?.statusCode}, Data: ${e.response?.data}, Message: ${e.message}');
       if (e.type == dio.DioExceptionType.connectionTimeout || e.type == dio.DioExceptionType.receiveTimeout) {
         throw ApiException('AI sedang sibuk. Kamu tetap bisa isi manual.', code: 'EXTERNAL_API_ERROR');
       }
@@ -101,7 +112,8 @@ class AiRepository {
       }
       
       throw ApiException('Terjadi kesalahan koneksi', code: 'NETWORK_ERROR');
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('Error in _parseMultipart: $e\n$stackTrace');
       if (e is ApiException) rethrow;
       throw ApiException('Terjadi kesalahan tidak terduga', code: 'UNKNOWN');
     }

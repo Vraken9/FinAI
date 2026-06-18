@@ -49,3 +49,13 @@ export type GeminiPart =
   | { text: string }
   | { inlineData: { mimeType: string; data: string } }  // base64 untuk audio/gambar
   | { fileData: { mimeType: string; fileUri: string } }; // untuk file besar via Files API
+
+export function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const chunkSize = 8192; // proses per 8KB agar tidak overflow stack
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}

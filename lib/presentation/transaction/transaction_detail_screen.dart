@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase_flutter;
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
@@ -53,7 +54,10 @@ class TransactionDetailScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fitur edit segera hadir')));
+              final tx = ref.read(transactionNotifierProvider).valueOrNull?.firstWhere((t) => t.id == id);
+              if (tx != null) {
+                context.push('/transaction/add', extra: tx);
+              }
             },
           ),
           IconButton(
@@ -113,6 +117,81 @@ class TransactionDetailScreen extends ConsumerWidget {
               if (tx.merchant != null && tx.merchant!.isNotEmpty)
                 _buildDetailRow('Merchant', tx.merchant!),
               _buildDetailRow('Dibuat via AI', tx.aiGenerated ? 'Ya' : 'Tidak'),
+              
+              if (tx.attachments != null && tx.attachments!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 16),
+                Text('Lampiran', style: AppTextStyles.headline1.copyWith(fontSize: 16)),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 120,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: tx.attachments!.length,
+                    itemBuilder: (context, index) {
+                      final attachment = tx.attachments![index];
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 12.0),
+                        child: GestureDetector(
+                          onTap: () async {
+                            try {
+                              final url = await supabase_flutter.Supabase.instance.client.storage
+                                  .from('transaction-attachments')
+                                  .createSignedUrl(attachment.filePath, 3600);
+                              if (context.mounted) {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => Dialog(
+                                    insetPadding: EdgeInsets.zero,
+                                    child: Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        InteractiveViewer(
+                                          child: Image.network(url, fit: BoxFit.contain),
+                                        ),
+                                        Positioned(
+                                          top: 40,
+                                          right: 16,
+                                          child: IconButton(
+                                            icon: const Icon(Icons.close, color: Colors.white, size: 32),
+                                            onPressed: () => Navigator.pop(context),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal memuat lampiran: $e')));
+                              }
+                            }
+                          },
+                          child: FutureBuilder<String>(
+                            future: supabase_flutter.Supabase.instance.client.storage
+                                .from('transaction-attachments')
+                                .createSignedUrl(attachment.filePath, 3600),
+                            builder: (context, snapshot) {
+                              return ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  width: 120,
+                                  color: Colors.grey.shade200,
+                                  child: snapshot.hasData
+                                      ? Image.network(snapshot.data!, fit: BoxFit.cover)
+                                      : const Center(child: CircularProgressIndicator()),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ],
           );
         },

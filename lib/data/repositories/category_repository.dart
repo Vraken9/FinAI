@@ -20,4 +20,25 @@ class CategoryRepository {
 
     return response.map((json) => Category.fromJson(json)).toList();
   }
+
+  Future<Category> createCategory(Category category) async {
+    final Map<String, dynamic> data = category.toJson();
+    data.remove('id');
+    data.remove('created_at');
+    data.remove('updated_at');
+    
+    if (data['user_id'] == '') {
+      data['user_id'] = _client.auth.currentUser?.id;
+    }
+    
+    data.removeWhere((key, value) => value == null || (key == 'id' && value == ''));
+
+    final response = await _client
+        .from('categories')
+        .insert(data)
+        .select()
+        .single();
+
+    return Category.fromJson(response);
+  }
 }

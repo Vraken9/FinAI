@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/extensions/currency_extension.dart';
 import '../../../../data/models/transaction.dart';
+import '../../../../core/extensions/transaction_extension.dart';
 import '../../../../providers/asset_provider.dart';
 import '../../../../providers/transaction_provider.dart';
 
@@ -36,8 +37,8 @@ class _BalanceCardState extends ConsumerState<BalanceCard> {
         if (t.transactionDate.year == now.year && t.transactionDate.month == now.month) {
           if (t.type == TransactionType.income) {
             monthlyIncome += t.amount;
-          } else if (t.type == TransactionType.expense) {
-            monthlyExpense += t.amount;
+          } else {
+            monthlyExpense += t.effectiveExpenseAmount;
           }
         }
       }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/extensions/transaction_extension.dart';
 import '../../../../data/models/transaction.dart';
 import '../../../../providers/transaction_provider.dart';
 
@@ -22,8 +23,8 @@ class SummaryCardsRow extends ConsumerWidget {
         if (t.transactionDate.year == now.year && t.transactionDate.month == now.month) {
           if (t.type == TransactionType.income) {
             monthlyIncome += t.amount;
-          } else if (t.type == TransactionType.expense) {
-            monthlyExpense += t.amount;
+          } else {
+            monthlyExpense += t.effectiveExpenseAmount;
           }
         }
       }
