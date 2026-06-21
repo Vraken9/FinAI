@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 
-class AiDailyInsight extends StatelessWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../providers/ai_insight_provider.dart';
+
+class AiDailyInsight extends ConsumerWidget {
   const AiDailyInsight({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final insightState = ref.watch(aiInsightProvider);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       padding: const EdgeInsets.all(16.0),
@@ -43,13 +47,29 @@ class AiDailyInsight extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
-            '"Pengeluaran transport Anda 20% lebih tinggi minggu ini dibandingkan minggu lalu. Coba cek ulang rute perjalanan Anda."',
-            style: TextStyle(
-              color: AppColors.primary,
-              fontSize: 13,
-              fontStyle: FontStyle.italic,
-              height: 1.4,
+          insightState.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.only(top: 8.0),
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryAccent),
+              ),
+            ),
+            error: (err, _) => const Text(
+              'Gagal memuat insight harian.',
+              style: TextStyle(color: AppColors.expense, fontSize: 13, fontStyle: FontStyle.italic),
+            ),
+            data: (insight) => Text(
+              insight != null && insight.isNotEmpty
+                  ? '"$insight"'
+                  : '"Semua catatan keuangan Anda terlihat baik hari ini!"',
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontSize: 13,
+                fontStyle: FontStyle.italic,
+                height: 1.4,
+              ),
             ),
           ),
         ],

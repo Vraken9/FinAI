@@ -21,24 +21,14 @@ class ApiException extends AppException {
     switch (code) {
       case 'UNAUTHORIZED':
         return 'Sesi habis, silakan login kembali';
-      case 'FORBIDDEN':
-        return 'Kamu tidak punya akses ke resource ini';
       case 'VALIDATION_ERROR':
         return 'Data yang dikirim tidak valid';
       case 'RATE_LIMITED':
         return 'Terlalu banyak request, coba lagi nanti';
-      case 'PARSE_FAILED':
-        return 'AI tidak dapat memproses input ini';
-      case 'AMBIGUOUS_INPUT':
-        return 'Input tidak jelas, coba lebih spesifik';
-      case 'EXTERNAL_API_ERROR':
-        return 'Layanan AI sedang tidak tersedia';
-      case 'DATABASE_ERROR':
-        return 'Terjadi kesalahan, tim kami sudah diberitahu';
-      case 'AUTH_ERROR':
-        return message;
       default:
-        return 'Terjadi kesalahan tidak terduga';
+        return message.isNotEmpty 
+          ? message 
+          : 'Terjadi kesalahan tidak terduga';
     }
   }
 

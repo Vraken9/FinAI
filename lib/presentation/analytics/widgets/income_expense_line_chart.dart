@@ -4,16 +4,23 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../providers/analytics_provider.dart';
+import '../../common/widgets/empty_state.dart';
 
 class IncomeExpenseLineChart extends ConsumerWidget {
   const IncomeExpenseLineChart({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // MOCK DATA: Menggunakan IncomeExpenseLineChartData
     final data = ref.watch(incomeExpenseLineChartDataProvider);
     final incomeData = data['income'] ?? [];
     final expenseData = data['expense'] ?? [];
+
+    if (incomeData.isEmpty && expenseData.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 32.0),
+        child: EmptyState(message: 'Tidak ada data tren', icon: Icons.show_chart),
+      );
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0),

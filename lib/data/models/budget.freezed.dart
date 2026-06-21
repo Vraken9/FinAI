@@ -29,12 +29,16 @@ mixin _$Budget {
   bool get carryOver => throw _privateConstructorUsedError;
   DateTime? get createdAt => throw _privateConstructorUsedError;
   DateTime? get updatedAt => throw _privateConstructorUsedError; // View fields
+// ignore: invalid_annotation_target
   @JsonKey(includeFromJson: true, includeToJson: false)
-  String? get categoryName => throw _privateConstructorUsedError;
+  String? get categoryName =>
+      throw _privateConstructorUsedError; // ignore: invalid_annotation_target
   @JsonKey(includeFromJson: true, includeToJson: false)
-  String? get categoryIcon => throw _privateConstructorUsedError;
+  String? get categoryIcon =>
+      throw _privateConstructorUsedError; // ignore: invalid_annotation_target
   @JsonKey(includeFromJson: true, includeToJson: false)
-  String? get categoryColor => throw _privateConstructorUsedError;
+  String? get categoryColor =>
+      throw _privateConstructorUsedError; // ignore: invalid_annotation_target
   @JsonKey(includeFromJson: true, includeToJson: false)
   int? get spentAmount => throw _privateConstructorUsedError;
 
@@ -301,15 +305,19 @@ class _$BudgetImpl implements _Budget {
   @override
   final DateTime? updatedAt;
 // View fields
+// ignore: invalid_annotation_target
   @override
   @JsonKey(includeFromJson: true, includeToJson: false)
   final String? categoryName;
+// ignore: invalid_annotation_target
   @override
   @JsonKey(includeFromJson: true, includeToJson: false)
   final String? categoryIcon;
+// ignore: invalid_annotation_target
   @override
   @JsonKey(includeFromJson: true, includeToJson: false)
   final String? categoryColor;
+// ignore: invalid_annotation_target
   @override
   @JsonKey(includeFromJson: true, includeToJson: false)
   final int? spentAmount;
@@ -422,15 +430,16 @@ abstract class _Budget implements Budget {
   @override
   DateTime? get updatedAt;
   @override // View fields
+// ignore: invalid_annotation_target
   @JsonKey(includeFromJson: true, includeToJson: false)
   String? get categoryName;
-  @override
+  @override // ignore: invalid_annotation_target
   @JsonKey(includeFromJson: true, includeToJson: false)
   String? get categoryIcon;
-  @override
+  @override // ignore: invalid_annotation_target
   @JsonKey(includeFromJson: true, includeToJson: false)
   String? get categoryColor;
-  @override
+  @override // ignore: invalid_annotation_target
   @JsonKey(includeFromJson: true, includeToJson: false)
   int? get spentAmount;
   @override

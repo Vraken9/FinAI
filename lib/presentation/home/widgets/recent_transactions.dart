@@ -4,8 +4,12 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/extensions/currency_extension.dart';
 import '../../../../core/extensions/datetime_extension.dart';
+import '../../../../core/extensions/transaction_extension.dart';
+import 'package:intl/intl.dart';
 import '../../../../data/models/transaction.dart';
 import '../../../../providers/transaction_provider.dart';
+import '../../common/widgets/transaction_list_item.dart';
+import '../../common/widgets/transaction_date_header.dart';
 
 class RecentTransactions extends ConsumerWidget {
   const RecentTransactions({super.key});
@@ -55,74 +59,56 @@ class RecentTransactions extends ConsumerWidget {
                   ),
                 );
               }
-              final recent = transactions.take(5).toList();
+              // Ambil 10 transaksi terakhir agar groupingnya lebih terlihat
+              final recent = transactions.take(10).toList();
+              
+              // Group by Date
+              final Map<String, List<Transaction>> grouped = {};
+              for (var t in recent) {
+                final dateStr = DateFormat('yyyy-MM-dd').format(t.transactionDate);
+                if (!grouped.containsKey(dateStr)) {
+                  grouped[dateStr] = [];
+                }
+                grouped[dateStr]!.add(t);
+              }
+
+              final sortedDates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
+
               return Column(
-                children: recent.map((t) => _buildTransactionItem(context, t)).toList(),
+                children: sortedDates.map((dateStr) {
+                  final dayTransactions = grouped[dateStr]!;
+                  
+                  int dayIncome = 0;
+                  int dayExpense = 0;
+                  for (var t in dayTransactions) {
+                    if (t.type == TransactionType.income) {
+                      dayIncome += t.amount;
+                    } else {
+                      dayExpense += t.effectiveExpenseAmount;
+                    }
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TransactionDateHeader(
+                        date: DateTime.parse(dateStr),
+                        totalIncome: dayIncome,
+                        totalExpense: dayExpense,
+                      ),
+                      ...dayTransactions.map((tx) => TransactionListItem(
+                            transaction: tx,
+                            onTap: () => context.push('/transaction/${tx.id}'),
+                          )),
+                    ],
+                  );
+                }).toList(),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('Error: $e')),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTransactionItem(BuildContext context, Transaction t) {
-    final isIncome = t.type == TransactionType.income;
-    final color = isIncome ? AppColors.income : AppColors.expense;
-    
-    return InkWell(
-      onTap: () {
-        context.push('/transaction/${t.id}');
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12.0),
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.1))),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isIncome ? Icons.arrow_downward : Icons.arrow_upward,
-                color: color,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    t.note ?? 'Tanpa Keterangan',
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    t.transactionDate.toRelativeString(),
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              '${isIncome ? '+' : '-'}${t.amount.toCurrency()}',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

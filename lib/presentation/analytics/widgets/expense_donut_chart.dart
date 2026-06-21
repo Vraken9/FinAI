@@ -5,14 +5,21 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/extensions/currency_extension.dart';
 import '../../../../providers/analytics_provider.dart';
+import '../../common/widgets/empty_state.dart';
 
 class ExpenseDonutChart extends ConsumerWidget {
   const ExpenseDonutChart({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // MOCK DATA: Menggunakan ExpenseDonutChartData
     final data = ref.watch(expenseDonutChartDataProvider);
+
+    if (data.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 32.0),
+        child: EmptyState(message: 'Tidak ada pengeluaran per kategori', icon: Icons.pie_chart),
+      );
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0),

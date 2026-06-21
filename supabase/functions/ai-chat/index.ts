@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callGemini, GeminiContent } from "../_shared/gemini.ts";
+import { callGemini, GeminiContent, uint8ArrayToBase64 } from "../_shared/gemini.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -35,6 +35,48 @@ serve(async (req) => {
       error: "Batas penggunaan AI harian tercapai. Coba lagi besok.",
       code: "RATE_LIMITED"
     }), { status: 429 });
+  }
+
+  const contentType = req.headers.get("content-type") || "";
+
+  if (contentType.includes("multipart/form-data")) {
+    const formData = await req.formData();
+    const audioFile = formData.get("audio") as File;
+    const mode = formData.get("mode") as string;
+    
+    if (mode === "transcribe" && audioFile) {
+      const audioBuffer = await audioFile.arrayBuffer();
+      const audioBase64 = uint8ArrayToBase64(new Uint8Array(audioBuffer));
+      const mimeType = audioFile.type || "audio/webm";
+
+      const prompt = `Transkripsikan ucapan berikut ke dalam teks bahasa Indonesia. Jawab HANYA dengan teks hasil transkripsinya saja, tanpa tanda kutip, penjelasan, atau tambahan apapun.`;
+      
+      try {
+        const rawText = await callGemini({
+          model: Deno.env.get("GEMINI_MODEL_MULTIMODAL")!,
+          contents: [{
+            role: "user",
+            parts: [
+              { inlineData: { mimeType, data: audioBase64 } },
+              { text: prompt },
+            ],
+          }],
+          generationConfig: { maxOutputTokens: 600 },
+        });
+
+        return new Response(JSON.stringify({
+          success: true,
+          transcription: rawText.trim(),
+        }), { headers: { "Content-Type": "application/json" } });
+      } catch (error) {
+        console.error("STT Error:", error);
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Gagal memproses suara. Coba lagi.",
+          code: "EXTERNAL_API_ERROR"
+        }), { status: 422 });
+      }
+    }
   }
 
   const { message, history = [] } = await req.json();
@@ -77,7 +119,7 @@ ATURAN SARAN:
 4. Gunakan bahasa Indonesia yang natural dan hangat, tidak kaku
 5. Jangan menghakimi, tapi jujur dan to-the-point
 6. Jika data tidak cukup untuk menjawab, katakan dengan jelas
-7. Respons maksimal 3 paragraf pendek agar mudah dibaca di layar mobile`;
+7. Jawab secara ringkas dan to-the-point (maksimal 2-3 paragraf pendek), hindari bertele-tele, tapi tetap sertakan detail angka/data yang relevan dan actionable`;
 
   // 4. Bangun riwayat percakapan untuk Gemini (multi-turn)
   const contents: GeminiContent[] = [
@@ -94,7 +136,7 @@ ATURAN SARAN:
       model: Deno.env.get("GEMINI_MODEL_TEXT")!,
       systemInstruction,
       contents,
-      generationConfig: { maxOutputTokens: 1024, temperature: 0.7 },
+      generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
     });
 
     // 6. Simpan pesan ke database

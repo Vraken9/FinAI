@@ -61,13 +61,30 @@ serve(async (req) => {
   const imageBase64 = uint8ArrayToBase64(new Uint8Array(imageBuffer));
   const mimeType = imageFile.type || "image/jpeg";
 
-  // Ambil kategori user
-  const { data: categories } = await supabase
+  // Ambil kategori dan aset user
+  const { data: categories, error: categoriesError } = await supabase
     .from("categories")
     .select("id, name, type")
     .or(`user_id.is.null,user_id.eq.${user.id}`)
     .is("deleted_at", null);
-  const categoryList = categories?.map(c => `${c.name} (${c.type})`).join(", ");
+    
+  if (categoriesError) {
+    console.error("Error fetching categories:", categoriesError);
+  }
+  const safeCategories = categories ?? [];
+  const categoryList = safeCategories.map(c => `${c.name} (${c.type})`).join(", ");
+
+  const { data: assets, error: assetsError } = await supabase
+    .from("assets")
+    .select("id, name, asset_type")
+    .or(`user_id.is.null,user_id.eq.${user.id}`)
+    .is("deleted_at", null);
+    
+  if (assetsError) {
+    console.error("Error fetching assets:", assetsError);
+  }
+  const safeAssets = assets ?? [];
+  const assetList = safeAssets.map(a => `${a.name} (${a.asset_type})`).join(", ");
 
   // Satu request ke Gemini: baca struk + parse sekaligus
   const prompt = `Lihat gambar struk/nota/invoice ini dengan teliti.
@@ -81,16 +98,18 @@ Yang perlu dicari:
 - Nama toko/merchant (biasanya di header struk)
 - Tanggal dan waktu transaksi (jika ada)
 - Item-item yang dibeli (untuk dimasukkan ke deskripsi)
-- Metode pembayaran jika disebutkan
+- Metode pembayaran jika disebutkan (misal: "BCA", "GoPay", "Debit")
 
 Kategori tersedia: ${categoryList}
-Aturan: jika tanggal tidak ada gunakan hari ini, gunakan TOTAL AKHIR bukan jumlah item.
+Daftar Dompet/Aset yang tersedia: ${assetList}
+Aturan: jika tanggal tidak ada gunakan hari ini, gunakan TOTAL AKHIR bukan jumlah item. Jika metode pembayaran yang tercetak di struk cocok dengan salah satu aset, masukkan ke asset_name, jika tidak biarkan null.
 
 Balas HANYA dengan JSON valid tanpa markdown:
 {
   "type": "expense",
   "amount": integer Rupiah total akhir,
   "category_name": string dari daftar kategori,
+  "asset_name": string dari daftar dompet/aset (atau null jika tidak ada),
   "note": string nama merchant + ringkasan max 100 karakter,
   "description": string daftar item yang dibeli max 300 karakter,
   "merchant": string nama toko atau null,
@@ -123,9 +142,21 @@ Balas HANYA dengan JSON valid tanpa markdown:
 
   try {
     const parsed = JSON.parse(rawText.trim());
-    const matchedCategory = categories?.find(c =>
+    const matchedCategory = safeCategories.find(c =>
       c.name.toLowerCase() === parsed.category_name?.toLowerCase()
     );
+
+    let finalAssetId = defaultAssetId;
+    if (parsed.asset_name) {
+      const parsedAssetLower = parsed.asset_name.toLowerCase();
+      const matchedAsset = safeAssets.find(a => 
+        a.name.toLowerCase().includes(parsedAssetLower) || 
+        parsedAssetLower.includes(a.name.toLowerCase())
+      );
+      if (matchedAsset) {
+        finalAssetId = matchedAsset.id;
+      }
+    }
 
     // Upload foto ke Supabase Storage untuk dilampirkan ke transaksi
     const fileName = `receipt_${Date.now()}.${mimeType.split("/")[1]}`;
@@ -143,7 +174,7 @@ Balas HANYA dengan JSON valid tanpa markdown:
         amount: parsed.amount,
         category_name: parsed.category_name,
         category_id: matchedCategory?.id,
-        asset_id: defaultAssetId,
+        asset_id: finalAssetId,
         note: parsed.note,
         description: parsed.description,
         merchant: parsed.merchant,

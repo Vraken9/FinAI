@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../constants/app_colors.dart';
 import '../../presentation/home/home_screen.dart';
+import '../../presentation/home/health_score_detail_screen.dart';
 import '../../presentation/common/layouts/main_scaffold.dart';
 
 import '../../providers/auth_provider.dart';
@@ -14,12 +15,25 @@ import '../../presentation/auth/pin_lock_screen.dart';
 import '../../presentation/onboarding/welcome_screen.dart';
 import '../../presentation/onboarding/setup_assets_screen.dart';
 import '../../presentation/analytics/analytics_screen.dart';
+import '../../presentation/chatbot/chatbot_screen.dart';
 
 import '../../data/models/transaction.dart';
 import '../../data/models/parsed_transaction.dart';
 import '../../presentation/transaction/add_transaction_screen.dart';
 import '../../presentation/transaction/transaction_detail_screen.dart';
 import '../../presentation/transaction/transaction_list_screen.dart';
+
+import '../../presentation/budget/budget_screen.dart';
+import '../../presentation/budget/add_budget_screen.dart';
+
+import '../../presentation/settings/settings_screen.dart';
+import '../../presentation/settings/manage_assets_screen.dart';
+import '../../presentation/settings/manage_categories_screen.dart';
+import '../../presentation/settings/import_screen.dart';
+import '../../presentation/settings/feedback_screen.dart';
+import '../../presentation/recurring/recurring_screen.dart';
+import '../../presentation/recurring/add_recurring_screen.dart';
+import '../../presentation/recurring/recurring_detail_screen.dart';
 
 class GoRouterRefreshNotifier extends ChangeNotifier {
   GoRouterRefreshNotifier(Ref ref) {
@@ -87,6 +101,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) => MainScaffold(child: child),
         routes: [
           GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
+          GoRoute(path: '/health-score', builder: (context, state) => const HealthScoreDetailScreen()),
           GoRoute(path: '/analytics', builder: (context, state) => const AnalyticsScreen()),
           GoRoute(path: '/chatbot', builder: (context, state) => const ChatbotScreen()),
           GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
@@ -101,12 +116,27 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: '/budget', builder: (context, state) => const BudgetScreen()),
           GoRoute(path: '/budget/add', builder: (context, state) => const AddBudgetScreen()),
-          GoRoute(path: '/recurring', builder: (context, state) => const RecurringScreen()),
+          GoRoute(
+            path: '/recurring', 
+            builder: (context, state) => const RecurringScreen(),
+            routes: [
+              GoRoute(path: 'add', builder: (context, state) => const AddRecurringScreen()),
+              GoRoute(
+                path: ':id', 
+                builder: (context, state) => RecurringDetailScreen(ruleId: state.pathParameters['id']!)
+              ),
+            ]
+          ),
           GoRoute(path: '/settings/assets', builder: (context, state) => const ManageAssetsScreen()),
           GoRoute(path: '/settings/categories', builder: (context, state) => const ManageCategoriesScreen()),
-          GoRoute(path: '/settings/export', builder: (context, state) => const ExportScreen()),
           GoRoute(path: '/settings/import', builder: (context, state) => const ImportScreen()),
-          GoRoute(path: '/settings/feedback', builder: (context, state) => const FeedbackScreen()),
+          GoRoute(
+            path: '/settings/feedback',
+            builder: (context, state) {
+              final source = state.uri.queryParameters['source'];
+              return FeedbackScreen(sourceScreen: source);
+            },
+          ),
         ]
       ),
     ]
@@ -116,13 +146,3 @@ final routerProvider = Provider<GoRouter>((ref) {
 // Dummy Screens to pass analyze (untuk screen yg belum dibuat)
 class SplashScreen extends StatelessWidget { const SplashScreen({super.key}); @override Widget build(BuildContext context) => const Scaffold(body: Center(child: CircularProgressIndicator(color: AppColors.primaryAccent))); }
 
-class ChatbotScreen extends StatelessWidget { const ChatbotScreen({super.key}); @override Widget build(BuildContext context) => const Scaffold(); }
-class SettingsScreen extends StatelessWidget { const SettingsScreen({super.key}); @override Widget build(BuildContext context) => const Scaffold(); }
-class BudgetScreen extends StatelessWidget { const BudgetScreen({super.key}); @override Widget build(BuildContext context) => const Scaffold(); }
-class AddBudgetScreen extends StatelessWidget { const AddBudgetScreen({super.key}); @override Widget build(BuildContext context) => const Scaffold(); }
-class RecurringScreen extends StatelessWidget { const RecurringScreen({super.key}); @override Widget build(BuildContext context) => const Scaffold(); }
-class ManageAssetsScreen extends StatelessWidget { const ManageAssetsScreen({super.key}); @override Widget build(BuildContext context) => const Scaffold(); }
-class ManageCategoriesScreen extends StatelessWidget { const ManageCategoriesScreen({super.key}); @override Widget build(BuildContext context) => const Scaffold(); }
-class ExportScreen extends StatelessWidget { const ExportScreen({super.key}); @override Widget build(BuildContext context) => const Scaffold(); }
-class ImportScreen extends StatelessWidget { const ImportScreen({super.key}); @override Widget build(BuildContext context) => const Scaffold(); }
-class FeedbackScreen extends StatelessWidget { const FeedbackScreen({super.key}); @override Widget build(BuildContext context) => const Scaffold(); }

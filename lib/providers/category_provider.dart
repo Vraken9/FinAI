@@ -25,8 +25,17 @@ class CategoryNotifier extends _$CategoryNotifier {
 
   Future<Category> addCategory(Category category) async {
     final newCategory = await _repository.createCategory(category);
-    final currentCategories = state.valueOrNull ?? [];
-    state = AsyncValue.data([...currentCategories, newCategory]);
+    await refresh();
     return newCategory;
+  }
+
+  Future<void> updateCategory(String id, Map<String, dynamic> data) async {
+    await _repository.updateCategory(id, data);
+    await refresh();
+  }
+
+  Future<void> deleteCategory(String id) async {
+    await _repository.deleteCategory(id);
+    await refresh();
   }
 }

@@ -4,14 +4,21 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../providers/analytics_provider.dart';
+import '../../common/widgets/empty_state.dart';
 
 class MonthlyBarChart extends ConsumerWidget {
   const MonthlyBarChart({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // MOCK DATA: Menggunakan MonthlyBarChartData
     final data = ref.watch(monthlyBarChartDataProvider);
+
+    if (data.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 32.0),
+        child: EmptyState(message: 'Tidak ada data bulanan', icon: Icons.bar_chart),
+      );
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0),

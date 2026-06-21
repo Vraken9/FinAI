@@ -7,6 +7,12 @@ part 'budget_provider.g.dart';
 @riverpod
 class BudgetNotifier extends _$BudgetNotifier {
   late final BudgetRepository _repository;
+  
+  int _currentMonth = DateTime.now().month;
+  int _currentYear = DateTime.now().year;
+
+  int get currentMonth => _currentMonth;
+  int get currentYear => _currentYear;
 
   @override
   FutureOr<List<Budget>> build() async {
@@ -15,18 +21,46 @@ class BudgetNotifier extends _$BudgetNotifier {
   }
 
   Future<List<Budget>> _fetchBudgets() async {
-    final now = DateTime.now();
-    return await _repository.getBudgetProgress(now.month, now.year);
+    return await _repository.getBudgetProgress(_currentMonth, _currentYear);
   }
 
   Future<void> refresh() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _fetchBudgets());
   }
+  
+  void goToPreviousMonth() {
+    if (_currentMonth == 1) {
+      _currentMonth = 12;
+      _currentYear--;
+    } else {
+      _currentMonth--;
+    }
+    refresh();
+  }
+
+  void goToNextMonth() {
+    if (_currentMonth == 12) {
+      _currentMonth = 1;
+      _currentYear++;
+    } else {
+      _currentMonth++;
+    }
+    refresh();
+  }
 
   Future<void> createBudget(Budget budget) async {
-    final created = await _repository.createBudget(budget);
-    final current = state.valueOrNull ?? [];
-    state = AsyncValue.data([...current, created]);
+    await _repository.createBudget(budget);
+    await refresh();
+  }
+
+  Future<void> updateBudget(String id, int newAmount) async {
+    await _repository.updateBudget(id, newAmount);
+    await refresh();
+  }
+
+  Future<void> deleteBudget(String id) async {
+    await _repository.deleteBudget(id);
+    await refresh();
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:dio/dio.dart' as dio;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -14,8 +15,9 @@ class AiRepository {
   AiRepository()
       : _client = SupabaseService().client,
         _dio = dio.Dio(dio.BaseOptions(
-          connectTimeout: const Duration(seconds: 30),
-          receiveTimeout: const Duration(seconds: 30),
+          connectTimeout: const Duration(seconds: 45),
+          receiveTimeout: const Duration(seconds: 45),
+          sendTimeout: const Duration(seconds: 45),
         ));
 
   String? get _accessToken {
@@ -101,17 +103,35 @@ class AiRepository {
         throw ApiException(data['error'] ?? 'Gagal memproses request', code: data['code'] ?? 'PARSE_FAILED');
       }
     } on dio.DioException catch (e) {
-      debugPrint('DioException in _parseMultipart: Status: ${e.response?.statusCode}, Data: ${e.response?.data}, Message: ${e.message}');
-      if (e.type == dio.DioExceptionType.connectionTimeout || e.type == dio.DioExceptionType.receiveTimeout) {
-        throw ApiException('AI sedang sibuk. Kamu tetap bisa isi manual.', code: 'EXTERNAL_API_ERROR');
-      }
+      debugPrint('DioException in _parseMultipart: Type: ${e.type}, Status: ${e.response?.statusCode}, Data: ${e.response?.data}, Message: ${e.message}');
       
-      final responseData = e.response?.data;
+      if (e.type == dio.DioExceptionType.connectionTimeout || 
+          e.type == dio.DioExceptionType.receiveTimeout || 
+          e.type == dio.DioExceptionType.sendTimeout) {
+        throw ApiException('Koneksi timeout, periksa internet kamu dan coba lagi', code: 'NETWORK_TIMEOUT');
+      } else if (e.type == dio.DioExceptionType.connectionError) {
+        throw ApiException('Tidak ada koneksi internet', code: 'NETWORK_ERROR');
+      } else if (e.type == dio.DioExceptionType.badResponse) {
+        final responseData = e.response?.data;
       if (responseData is Map && responseData['error'] != null) {
-        throw ApiException(responseData['error'], code: responseData['code'] ?? 'EXTERNAL_API_ERROR');
+        throw ApiException(
+          responseData['error'] as String,
+          code: responseData['code'] as String? ?? 'PARSE_FAILED',
+        );
+      } else if (responseData is String) {
+        try {
+          final decoded = jsonDecode(responseData);
+          if (decoded is Map && decoded['error'] != null) {
+            throw ApiException(
+              decoded['error'] as String,
+              code: decoded['code'] as String? ?? 'PARSE_FAILED',
+            );
+          }
+        } catch (_) {}
       }
+      } // <-- missing brace for badResponse block
       
-      throw ApiException('Terjadi kesalahan koneksi', code: 'NETWORK_ERROR');
+      throw ApiException('Layanan AI sedang sibuk. Coba lagi.', code: 'UNKNOWN');
     } catch (e, stackTrace) {
       debugPrint('Error in _parseMultipart: $e\n$stackTrace');
       if (e is ApiException) rethrow;

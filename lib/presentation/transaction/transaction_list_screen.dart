@@ -10,6 +10,7 @@ import '../../core/extensions/transaction_extension.dart';
 import '../../data/models/transaction.dart';
 import '../../providers/transaction_provider.dart';
 import '../common/widgets/transaction_list_item.dart';
+import '../common/widgets/transaction_date_header.dart';
 import '../common/widgets/empty_state.dart';
 import '../common/widgets/error_state.dart';
 import '../common/widgets/loading_skeleton.dart';
@@ -134,25 +135,10 @@ class _TransactionListScreenState extends ConsumerState<TransactionListScreen> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      color: AppColors.surface,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(displayDate, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.bold)),
-                          Row(
-                            children: [
-                              if (dayIncome > 0)
-                                Text('+${dayIncome.toCurrency()}', style: TextStyle(color: AppColors.income, fontSize: 12, fontWeight: FontWeight.bold)),
-                              if (dayIncome > 0 && dayExpense > 0)
-                                const Text('  |  ', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                              if (dayExpense > 0)
-                                Text('-${dayExpense.toCurrency()}', style: TextStyle(color: AppColors.expense, fontSize: 12, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ],
-                      ),
+                    TransactionDateHeader(
+                      date: DateTime.parse(dateStr),
+                      totalIncome: dayIncome,
+                      totalExpense: dayExpense,
                     ),
                     ...dayTransactions.map((tx) => TransactionListItem(
                           transaction: tx,

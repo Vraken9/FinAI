@@ -61,13 +61,30 @@ serve(async (req) => {
   const audioBase64 = uint8ArrayToBase64(new Uint8Array(audioBuffer));
   const mimeType = audioFile.type || "audio/webm"; // fallback jika mime tidak terdeteksi
 
-  // Ambil kategori user
-  const { data: categories } = await supabase
+  // Ambil kategori dan aset user
+  const { data: categories, error: categoriesError } = await supabase
     .from("categories")
     .select("id, name, type")
     .or(`user_id.is.null,user_id.eq.${user.id}`)
     .is("deleted_at", null);
-  const categoryList = categories?.map(c => `${c.name} (${c.type})`).join(", ");
+    
+  if (categoriesError) {
+    console.error("Error fetching categories:", categoriesError);
+  }
+  const safeCategories = categories ?? [];
+  const categoryList = safeCategories.map(c => `${c.name} (${c.type})`).join(", ");
+
+  const { data: assets, error: assetsError } = await supabase
+    .from("assets")
+    .select("id, name, asset_type")
+    .or(`user_id.is.null,user_id.eq.${user.id}`)
+    .is("deleted_at", null);
+    
+  if (assetsError) {
+    console.error("Error fetching assets:", assetsError);
+  }
+  const safeAssets = assets ?? [];
+  const assetList = safeAssets.map(a => `${a.name} (${a.asset_type})`).join(", ");
 
   // Satu request ke Gemini: transkripsi + parse sekaligus
   const prompt = `Dengarkan audio ini. Pengguna sedang menyebutkan transaksi keuangan dalam bahasa Indonesia.
@@ -77,7 +94,8 @@ Tugas kamu:
 2. Ekstrak informasi transaksi dari ucapan tersebut
 
 Kategori tersedia: ${categoryList}
-Aturan: nominal tanpa mata uang = Rupiah, "rb/ribu" = x1000, "jt/juta" = x1.000.000, default tipe = expense, default aset = cash.
+Daftar Dompet/Aset yang tersedia: ${assetList}
+Aturan: nominal tanpa mata uang = Rupiah, "rb/ribu" = x1000, "jt/juta" = x1.000.000, default tipe = expense, jika pengguna menyebut sumber dana (misal: "bayar pakai BCA") masukkan ke asset_name, jika tidak sebut aset sama sekali biarkan asset_name null.
 
 Balas HANYA dengan JSON valid tanpa markdown:
 {
@@ -85,6 +103,7 @@ Balas HANYA dengan JSON valid tanpa markdown:
   "type": "income" atau "expense",
   "amount": integer Rupiah,
   "category_name": string dari daftar kategori,
+  "asset_name": string dari daftar dompet/aset (atau null jika tidak ada),
   "note": string max 100 karakter,
   "description": string max 200 karakter,
   "merchant": string atau null,
@@ -116,9 +135,21 @@ Balas HANYA dengan JSON valid tanpa markdown:
 
   try {
     const parsed = JSON.parse(rawText.trim());
-    const matchedCategory = categories?.find(c =>
+    const matchedCategory = safeCategories.find(c =>
       c.name.toLowerCase() === parsed.category_name?.toLowerCase()
     );
+
+    let finalAssetId = defaultAssetId;
+    if (parsed.asset_name) {
+      const parsedAssetLower = parsed.asset_name.toLowerCase();
+      const matchedAsset = safeAssets.find(a => 
+        a.name.toLowerCase().includes(parsedAssetLower) || 
+        parsedAssetLower.includes(a.name.toLowerCase())
+      );
+      if (matchedAsset) {
+        finalAssetId = matchedAsset.id;
+      }
+    }
 
     await logAiUsage(user.id, "parse_voice");
 
@@ -130,7 +161,7 @@ Balas HANYA dengan JSON valid tanpa markdown:
         amount: parsed.amount,
         category_name: parsed.category_name,
         category_id: matchedCategory?.id,
-        asset_id: defaultAssetId,
+        asset_id: finalAssetId,
         note: parsed.note,
         description: parsed.description,
         merchant: parsed.merchant,

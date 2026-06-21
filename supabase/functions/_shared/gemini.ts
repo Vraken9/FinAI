@@ -5,7 +5,7 @@ export async function callGemini(params: {
   contents: GeminiContent[];
   systemInstruction?: string;
   generationConfig?: Record<string, unknown>;
-}): Promise<string> {
+}, retries = 2): Promise<string> {
   const apiKey = Deno.env.get("GEMINI_API_KEY")!;
   const url = `${GEMINI_API_BASE}/${params.model}:generateContent?key=${apiKey}`;
 
@@ -24,19 +24,35 @@ export async function callGemini(params: {
     };
   }
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(`Gemini API error ${response.status}: ${JSON.stringify(err)}`);
+      if (response.status === 503 && attempt < retries) {
+        // Tunggu sebentar sebelum retry (exponential backoff sederhana)
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+        continue;
+      }
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(`Gemini API error ${response.status}: ${JSON.stringify(err)}`);
+      }
+
+      const data = await response.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    } catch (error) {
+      if (attempt === retries) throw error;
+      
+      // Jika terjadi error jaringan (misal ECONNRESET) sebelum mendapatkan response
+      await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+    }
   }
-
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  throw new Error("Gemini API gagal setelah beberapa percobaan");
 }
 
 // Tipe untuk Gemini content parts

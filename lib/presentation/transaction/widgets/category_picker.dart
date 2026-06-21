@@ -5,6 +5,7 @@ import '../../../providers/category_provider.dart';
 import '../../common/widgets/category_icon.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../common/widgets/category_form_dialog.dart';
 
 class CategoryPicker extends ConsumerWidget {
   final Category? selectedCategory;
@@ -88,122 +89,16 @@ class CategoryPicker extends ConsumerWidget {
     );
   }
 
-  void _showAddCategoryDialog(BuildContext context, WidgetRef ref) {
-    final nameController = TextEditingController();
-    String selectedIcon = 'category';
-    String selectedColor = '#448AFF';
-    
-    final icons = ['restaurant', 'commute', 'shopping_cart', 'receipt_long', 'medical_services', 'build', 'school', 'local_movies', 'attach_money', 'category'];
-    final colors = ['#FF5252', '#448AFF', '#69F0AE', '#FFD740', '#CE93D8', '#BDBDBD'];
-
-    showDialog(
+  void _showAddCategoryDialog(BuildContext context, WidgetRef ref) async {
+    final newCat = await showDialog<Category?>(
       context: context,
       useRootNavigator: true,
-      builder: (context) {
-        String? errorText;
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return PopScope(
-              canPop: true,
-              child: AlertDialog(
-              title: const Text('Tambah Kategori Baru'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Nama Kategori', 
-                        border: const OutlineInputBorder(),
-                        errorText: errorText,
-                      ),
-                      onChanged: (val) {
-                        if (errorText != null) setState(() => errorText = null);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('Pilih Warna:'),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: colors.map((c) => GestureDetector(
-                        onTap: () => setState(() => selectedColor = c),
-                        child: Container(
-                          width: 32, height: 32,
-                          decoration: BoxDecoration(
-                            color: Color(int.parse(c.substring(1, 7), radix: 16) + 0xFF000000),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: selectedColor == c ? Colors.black : Colors.transparent, width: 2),
-                          ),
-                        ),
-                      )).toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('Pilih Ikon:'),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8, runSpacing: 8,
-                      children: icons.map((ic) => GestureDetector(
-                        onTap: () => setState(() => selectedIcon = ic),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: selectedIcon == ic ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: selectedIcon == ic ? AppColors.primary : Colors.grey.shade300),
-                          ),
-                          child: Icon(_getIconData(ic), color: selectedIcon == ic ? AppColors.primary : Colors.grey),
-                        ),
-                      )).toList(),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (nameController.text.trim().isEmpty) {
-                      setState(() => errorText = 'Nama kategori tidak boleh kosong');
-                      return;
-                    }
-                    
-                    final newCat = Category(
-                      id: '',
-                      userId: '',
-                      name: nameController.text.trim(),
-                      icon: selectedIcon,
-                      color: selectedColor,
-                      type: transactionType,
-                      createdAt: DateTime.now(),
-                    );
-                    
-                    try {
-                      final created = await ref.read(categoryNotifierProvider.notifier).addCategory(newCat);
-                      if (context.mounted) {
-                        onSelected(created);
-                        Navigator.pop(context);
-                      }
-                    } catch (e) {
-                      debugPrint(e.toString());
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Gagal menambah kategori: $e')),
-                        );
-                      }
-                    }
-                  },
-                  child: const Text('Simpan'),
-                ),
-              ],
-            ),
-            );
-          }
-        );
-      }
+      builder: (context) => CategoryFormDialog(defaultType: transactionType),
     );
+    if (newCat != null && context.mounted) {
+      onSelected(newCat);
+      Navigator.pop(context);
+    }
   }
 
   IconData _getIconData(String name) {

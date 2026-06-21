@@ -23,7 +23,7 @@ final dashboardSummaryProvider = AutoDisposeNotifierProvider<DashboardSummary,
 
 typedef _$DashboardSummary = AutoDisposeNotifier<Map<String, dynamic>>;
 String _$dailyExpenseChartDataHash() =>
-    r'3a80a3aa7b3f93f554ec51f0565718277449f3d4';
+    r'daecae3f261009c04a8780e871fcc83e510b3619';
 
 /// See also [DailyExpenseChartData].
 @ProviderFor(DailyExpenseChartData)

@@ -5,15 +5,21 @@ import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/extensions/currency_extension.dart';
 import '../../../../core/extensions/datetime_extension.dart';
 import '../../../../providers/analytics_provider.dart';
+import '../../common/widgets/empty_state.dart';
 
 class TopExpensesList extends ConsumerWidget {
   const TopExpensesList({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // MOCK DATA: Menggunakan TopExpensesData sesuai kesepakatan awal fase 2
-    // CATATAN: Ini bisa diubah menggunakan data dari transactionNotifierProvider dengan sort limit
     final expenses = ref.watch(topExpensesDataProvider);
+
+    if (expenses.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 32.0),
+        child: EmptyState(message: 'Tidak ada pengeluaran', icon: Icons.receipt_long),
+      );
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0),

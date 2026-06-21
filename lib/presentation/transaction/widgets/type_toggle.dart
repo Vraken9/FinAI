@@ -42,7 +42,7 @@ class TypeToggle extends StatelessWidget {
             color: isSelected ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
             boxShadow: isSelected
-                ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]
+                ? [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2))]
                 : [],
           ),
           child: Text(

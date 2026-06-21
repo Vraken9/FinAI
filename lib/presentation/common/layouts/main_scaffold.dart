@@ -56,12 +56,14 @@ class MainScaffold extends StatelessWidget {
 
     return Scaffold(
       body: child,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/transaction/add'),
-        backgroundColor: AppColors.primaryAccent,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      floatingActionButton: (currentIndex == 0 || currentIndex == 1 || currentIndex == 2)
+          ? FloatingActionButton(
+              onPressed: () => context.push('/transaction/add'),
+              backgroundColor: AppColors.primaryAccent,
+              shape: const CircleBorder(),
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,

@@ -223,8 +223,11 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           
           final fileExtension = fileName.split('.').last.toLowerCase();
           String fileType = 'application/pdf';
-          if (fileExtension == 'jpg' || fileExtension == 'jpeg') fileType = 'image/jpeg';
-          else if (fileExtension == 'png') fileType = 'image/png';
+          if (fileExtension == 'jpg' || fileExtension == 'jpeg') {
+            fileType = 'image/jpeg';
+          } else if (fileExtension == 'png') {
+            fileType = 'image/png';
+          }
           
           await supabase.from('transaction_attachments').insert({
             'transaction_id': transactionId,

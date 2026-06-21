@@ -103,12 +103,18 @@ class __$$IdleImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$IdleImpl implements _Idle {
+class _$IdleImpl with DiagnosticableTreeMixin implements _Idle {
   const _$IdleImpl();
 
   @override
-  String toString() {
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
     return 'AiParseState.idle()';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty('type', 'AiParseState.idle'));
   }
 
   @override
@@ -217,12 +223,18 @@ class __$$LoadingImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$LoadingImpl implements _Loading {
+class _$LoadingImpl with DiagnosticableTreeMixin implements _Loading {
   const _$LoadingImpl();
 
   @override
-  String toString() {
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
     return 'AiParseState.loading()';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(DiagnosticsProperty('type', 'AiParseState.loading'));
   }
 
   @override
@@ -356,15 +368,23 @@ class __$$SuccessImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$SuccessImpl implements _Success {
+class _$SuccessImpl with DiagnosticableTreeMixin implements _Success {
   const _$SuccessImpl(this.data);
 
   @override
   final ParsedTransaction data;
 
   @override
-  String toString() {
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
     return 'AiParseState.success(data: $data)';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(DiagnosticsProperty('type', 'AiParseState.success'))
+      ..add(DiagnosticsProperty('data', data));
   }
 
   @override
@@ -506,7 +526,7 @@ class __$$ErrorImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$ErrorImpl implements _Error {
+class _$ErrorImpl with DiagnosticableTreeMixin implements _Error {
   const _$ErrorImpl(this.message, {required this.isRetryable});
 
   @override
@@ -515,8 +535,17 @@ class _$ErrorImpl implements _Error {
   final bool isRetryable;
 
   @override
-  String toString() {
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
     return 'AiParseState.error(message: $message, isRetryable: $isRetryable)';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(DiagnosticsProperty('type', 'AiParseState.error'))
+      ..add(DiagnosticsProperty('message', message))
+      ..add(DiagnosticsProperty('isRetryable', isRetryable));
   }
 
   @override

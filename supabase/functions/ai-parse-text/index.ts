@@ -51,27 +51,45 @@ serve(async (req) => {
   // 3. Parse body
   const { text, default_asset_id } = await req.json();
 
-  // 4. Ambil kategori user
-  const { data: categories } = await supabase
+  // 4. Ambil kategori dan aset user
+  const { data: categories, error: categoriesError } = await supabase
     .from("categories")
     .select("id, name, type")
     .or(`user_id.is.null,user_id.eq.${user.id}`)
     .is("deleted_at", null);
 
-  const categoryList = categories?.map(c => `${c.name} (${c.type})`).join(", ");
+  if (categoriesError) {
+    console.error("Error fetching categories:", categoriesError);
+  }
+  const safeCategories = categories ?? [];
+  const categoryList = safeCategories.map(c => `${c.name} (${c.type})`).join(", ");
+
+  const { data: assets, error: assetsError } = await supabase
+    .from("assets")
+    .select("id, name, asset_type")
+    .or(`user_id.is.null,user_id.eq.${user.id}`)
+    .is("deleted_at", null);
+
+  if (assetsError) {
+    console.error("Error fetching assets:", assetsError);
+  }
+  const safeAssets = assets ?? [];
+  const assetList = safeAssets.map(a => `${a.name} (${a.asset_type})`).join(", ");
 
   // 5. Panggil Gemini
   const systemPrompt = `Kamu adalah asisten parsing transaksi keuangan untuk aplikasi FinAI.
 Tugas kamu: ekstrak informasi transaksi dari input teks bahasa Indonesia natural.
 
 Kategori yang tersedia: ${categoryList}
+Daftar Dompet/Aset yang tersedia: ${assetList}
 
 Aturan parsing:
 - Jika tidak ada mata uang, asumsikan Rupiah Indonesia
 - "rb" atau "ribu" = dikali 1000, "jt" atau "juta" = dikali 1.000.000
 - Jika ada beberapa item (misal: nasi goreng 15rb + es teh 5rb), jumlahkan totalnya
 - Jika tipe transaksi tidak jelas dari konteks, asumsikan "expense"
-- Jika aset tidak disebutkan, gunakan "cash"
+- Jika pengguna menyebut sumber dana (misal: "bayar pakai BCA", "dari GoPay"), sertakan di asset_name
+- Jika aset tidak disebutkan sama sekali, biarkan asset_name null
 - Merchant adalah nama toko/restoran jika disebutkan
 
 Balas HANYA dengan JSON valid, tanpa teks tambahan, tanpa markdown code block:
@@ -79,6 +97,7 @@ Balas HANYA dengan JSON valid, tanpa teks tambahan, tanpa markdown code block:
   "type": "income" atau "expense",
   "amount": angka integer dalam Rupiah,
   "category_name": string dari daftar kategori,
+  "asset_name": string dari daftar dompet/aset (atau null jika tidak ada),
   "note": string ringkasan singkat max 100 karakter,
   "description": string deskripsi detail max 200 karakter,
   "merchant": string atau null,
@@ -96,9 +115,21 @@ Balas HANYA dengan JSON valid, tanpa teks tambahan, tanpa markdown code block:
   // 6. Parse JSON response
   try {
     const parsed = JSON.parse(rawText.trim());
-    const matchedCategory = categories?.find(c =>
+    const matchedCategory = safeCategories.find(c =>
       c.name.toLowerCase() === parsed.category_name?.toLowerCase()
     );
+
+    let finalAssetId = default_asset_id;
+    if (parsed.asset_name) {
+      const parsedAssetLower = parsed.asset_name.toLowerCase();
+      const matchedAsset = safeAssets.find(a => 
+        a.name.toLowerCase().includes(parsedAssetLower) || 
+        parsedAssetLower.includes(a.name.toLowerCase())
+      );
+      if (matchedAsset) {
+        finalAssetId = matchedAsset.id;
+      }
+    }
 
     await logAiUsage(user.id, "parse_text");
 
@@ -109,7 +140,7 @@ Balas HANYA dengan JSON valid, tanpa teks tambahan, tanpa markdown code block:
         amount: parsed.amount,
         category_name: parsed.category_name,
         category_id: matchedCategory?.id,
-        asset_id: default_asset_id,
+        asset_id: finalAssetId,
         note: parsed.note,
         description: parsed.description,
         merchant: parsed.merchant,

@@ -96,6 +96,11 @@ class AuthNotifier extends _$AuthNotifier {
     state = state.copyWith(isOnboarded: true);
   }
 
+  Future<void> updateProfile(Map<String, dynamic> data) async {
+    await _repository.updateProfile(data);
+    await _fetchProfile();
+  }
+
   void unlockPin() {
     state = state.copyWith(isPinLocked: false);
   }

@@ -6,7 +6,7 @@ part of 'asset_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$assetNotifierHash() => r'34ca1f50f363d6e02a8c3664e3775fcd93644374';
+String _$assetNotifierHash() => r'1514623aaad57d298c3c183bd55bb445d4865283';
 
 /// See also [AssetNotifier].
 @ProviderFor(AssetNotifier)

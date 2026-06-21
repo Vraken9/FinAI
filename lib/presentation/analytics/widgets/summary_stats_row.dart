@@ -10,42 +10,58 @@ class SummaryStatsRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // MOCK DATA: Menggunakan AnalyticsSummaryData sesuai kesepakatan awal fase 2
-    // CATATAN: Ini bisa diubah menggunakan data dari transactionNotifierProvider (seperti balance_card di Fase 1)
     final summaryData = ref.watch(analyticsSummaryDataProvider);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                title: 'Pemasukan',
-                amount: summaryData['income'] ?? 0,
-                color: AppColors.income,
-                icon: Icons.arrow_downward,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _StatCard(
+                  title: 'Pemasukan',
+                  amount: summaryData['income'] ?? 0,
+                  color: AppColors.income,
+                  icon: Icons.arrow_downward,
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _StatCard(
-                title: 'Pengeluaran',
-                amount: summaryData['expense'] ?? 0,
-                color: AppColors.expense,
-                icon: Icons.arrow_upward,
+              const SizedBox(width: 12),
+              Expanded(
+                child: _StatCard(
+                  title: 'Pengeluaran',
+                  amount: summaryData['expense'] ?? 0,
+                  color: AppColors.expense,
+                  icon: Icons.arrow_upward,
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _StatCard(
-                title: 'Selisih',
-                amount: summaryData['difference'] ?? 0,
-                color: AppColors.primary,
-                icon: Icons.swap_vert,
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _StatCard(
+                  title: 'Net (Selisih)',
+                  amount: summaryData['difference'] ?? 0,
+                  color: AppColors.primary,
+                  icon: Icons.swap_vert,
+                ),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _StatCard(
+                  title: 'Saving Rate',
+                  amount: summaryData['saving_rate'] ?? 0,
+                  color: AppColors.textSecondary,
+                  icon: Icons.savings_outlined,
+                  isPercentage: true,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -55,12 +71,14 @@ class _StatCard extends StatelessWidget {
   final int amount;
   final Color color;
   final IconData icon;
+  final bool isPercentage;
 
   const _StatCard({
     required this.title,
     required this.amount,
     required this.color,
     required this.icon,
+    this.isPercentage = false,
   });
 
   @override
@@ -103,9 +121,9 @@ class _StatCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            amount.toCurrency(),
+            isPercentage ? '$amount%' : amount.toCurrency(),
             style: AppTextStyles.headline1.copyWith(
-              color: amount < 0 ? AppColors.expense : Colors.black,
+              color: amount < 0 && !isPercentage ? AppColors.expense : Colors.black,
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),

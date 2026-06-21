@@ -15,6 +15,7 @@ class CategoryRepository {
         .from('categories')
         .select()
         .eq('is_hidden', false)
+        .isFilter('deleted_at', null)
         .or('user_id.eq.${user.id},user_id.is.null')
         .order('sort_order', ascending: true);
 
@@ -40,5 +41,44 @@ class CategoryRepository {
         .single();
 
     return Category.fromJson(response);
+  }
+
+  Future<Category> updateCategory(String id, Map<String, dynamic> data) async {
+    data.remove('id');
+    data.remove('created_at');
+    data.remove('updated_at');
+    data.remove('user_id'); // Prevent modifying ownership
+    
+    final response = await _client
+        .from('categories')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+    return Category.fromJson(response);
+  }
+
+  Future<void> deleteCategory(String id) async {
+    // Check for related transactions first
+    final user = _client.auth.currentUser;
+    if (user == null) return;
+    
+    final txResponse = await _client
+        .from('transactions')
+        .select('id')
+        .eq('user_id', user.id)
+        .isFilter('deleted_at', null)
+        .eq('category_id', id)
+        .limit(1);
+        
+    if ((txResponse as List).isNotEmpty) {
+      throw Exception('Kategori tidak dapat dihapus karena masih digunakan pada transaksi aktif.');
+    }
+
+    // Soft delete
+    await _client
+        .from('categories')
+        .update({'deleted_at': DateTime.now().toIso8601String()})
+        .eq('id', id);
   }
 }

@@ -51,7 +51,12 @@ final analyticsSummaryDataProvider = Provider<Map<String, int>>((ref) {
     }
   }
   
-  return {'income': income, 'expense': expense, 'difference': income - expense};
+  return {
+    'income': income, 
+    'expense': expense, 
+    'difference': income - expense,
+    'saving_rate': income > 0 ? ((income - expense) / income * 100).round() : 0,
+  };
 });
 
 final expenseDonutChartDataProvider = Provider<List<Map<String, dynamic>>>((ref) {
@@ -84,18 +89,23 @@ final incomeExpenseLineChartDataProvider = Provider<Map<String, List<Map<String,
   final transactions = ref.watch(transactionNotifierProvider).valueOrNull ?? [];
   final filtered = _filterTransactionsByPeriod(transactions, period);
   
-  // A simplified grouping logic. Ideally groups by Day, Week or Month depending on period length.
-  // For simplicity, we group by Day of year.
+  final isMonthly = period == '3B' || period == '6B' || period == 'Tahun';
   final Map<int, int> incomeMap = {};
   final Map<int, int> expenseMap = {};
   
   for (var t in filtered) {
-    final dayKey = t.transactionDate.millisecondsSinceEpoch ~/ (1000 * 60 * 60 * 24);
+    int key;
+    if (isMonthly) {
+      key = t.transactionDate.year * 100 + t.transactionDate.month;
+    } else {
+      key = t.transactionDate.millisecondsSinceEpoch ~/ (1000 * 60 * 60 * 24);
+    }
+    
     if (t.type == TransactionType.income) {
-      incomeMap[dayKey] = (incomeMap[dayKey] ?? 0) + t.amount;
+      incomeMap[key] = (incomeMap[key] ?? 0) + t.amount;
     } else {
       final exp = t.effectiveExpenseAmount;
-      if (exp > 0) expenseMap[dayKey] = (expenseMap[dayKey] ?? 0) + exp;
+      if (exp > 0) expenseMap[key] = (expenseMap[key] ?? 0) + exp;
     }
   }
   
@@ -105,7 +115,6 @@ final incomeExpenseLineChartDataProvider = Provider<Map<String, List<Map<String,
   incomeList.sort((a, b) => (a['day'] as int).compareTo(b['day'] as int));
   expenseList.sort((a, b) => (a['day'] as int).compareTo(b['day'] as int));
   
-  // Normalize 'day' to 1..N for UI
   int i = 1;
   for (var item in incomeList) { item['day'] = i++; }
   i = 1;
@@ -152,14 +161,16 @@ final topExpensesDataProvider = Provider<List<Map<String, dynamic>>>((ref) {
   final List<Map<String, dynamic>> expenses = [];
   
   for (var t in filtered) {
-    final expenseAmt = t.effectiveExpenseAmount;
-    if (expenseAmt > 0) {
-      expenses.add({
-        'name': t.merchant ?? t.note ?? (t.type == TransactionType.transfer ? 'Biaya Transfer' : 'Pengeluaran'),
-        'category': t.category?.name ?? 'Lainnya',
-        'amount': expenseAmt,
-        'date': t.transactionDate,
-      });
+    if (t.type == TransactionType.expense) {
+      final expenseAmt = t.effectiveExpenseAmount;
+      if (expenseAmt > 0) {
+        expenses.add({
+          'name': t.merchant ?? t.note ?? 'Pengeluaran',
+          'category': t.category?.name ?? 'Lainnya',
+          'amount': expenseAmt,
+          'date': t.transactionDate,
+        });
+      }
     }
   }
   

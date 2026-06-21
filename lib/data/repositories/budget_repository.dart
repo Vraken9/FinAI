@@ -43,4 +43,18 @@ class BudgetRepository {
 
     return Budget.fromJson(response);
   }
+
+  Future<void> updateBudget(String id, int newAmount) async {
+    await _client
+        .from('budgets')
+        .update({'amount': newAmount, 'updated_at': DateTime.now().toUtc().toIso8601String()})
+        .eq('id', id);
+  }
+
+  Future<void> deleteBudget(String id) async {
+    await _client
+        .from('budgets')
+        .delete()
+        .eq('id', id);
+  }
 }
