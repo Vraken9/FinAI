@@ -142,6 +142,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           _buildSectionHeader('Akun'),
           ListTile(
+            leading: const Icon(Icons.pie_chart_outline),
+            title: const Text('Atur Anggaran'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/budget'),
+          ),
+          ListTile(
             leading: const Icon(Icons.account_balance_wallet_outlined),
             title: const Text('Kelola Dompet / Aset'),
             trailing: const Icon(Icons.chevron_right),

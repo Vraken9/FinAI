@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../providers/dashboard_provider.dart';
 
@@ -44,11 +45,25 @@ class DailyExpenseChart extends ConsumerWidget {
           const SizedBox(height: 24),
           SizedBox(
             height: 150,
-            child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
+            child: LineChart(
+              LineChartData(
                 maxY: maxAmount * 1.2,
-                barTouchData: BarTouchData(enabled: false),
+                minY: 0,
+                lineTouchData: LineTouchData(
+                  enabled: true,
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (touchedSpot) => AppColors.primary,
+                    getTooltipItems: (touchedSpots) {
+                      return touchedSpots.map((spot) {
+                        final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+                        return LineTooltipItem(
+                          currencyFormat.format(spot.y),
+                          const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                        );
+                      }).toList();
+                    },
+                  ),
+                ),
                 titlesData: FlTitlesData(
                   show: true,
                   bottomTitles: AxisTitles(
@@ -85,19 +100,22 @@ class DailyExpenseChart extends ConsumerWidget {
                   ),
                 ),
                 borderData: FlBorderData(show: false),
-                barGroups: chartData.asMap().entries.map((entry) {
-                  return BarChartGroupData(
-                    x: entry.key,
-                    barRods: [
-                      BarChartRodData(
-                        toY: (entry.value['amount'] as num).toDouble(),
-                        color: AppColors.expense,
-                        width: 12,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                      ),
-                    ],
-                  );
-                }).toList(),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: chartData.asMap().entries.map((entry) {
+                      return FlSpot(entry.key.toDouble(), (entry.value['amount'] as num).toDouble());
+                    }).toList(),
+                    isCurved: true,
+                    color: AppColors.expense,
+                    barWidth: 3,
+                    isStrokeCapRound: true,
+                    dotData: const FlDotData(show: true),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: AppColors.expense.withValues(alpha: 0.1),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

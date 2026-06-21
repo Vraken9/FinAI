@@ -14,6 +14,7 @@ _$BudgetImpl _$$BudgetImplFromJson(Map<String, dynamic> json) => _$BudgetImpl(
       periodMonth: (json['period_month'] as num).toInt(),
       periodYear: (json['period_year'] as num).toInt(),
       carryOver: json['carry_over'] as bool? ?? false,
+      notes: json['notes'] as String?,
       createdAt: json['created_at'] == null
           ? null
           : DateTime.parse(json['created_at'] as String),
@@ -35,6 +36,7 @@ Map<String, dynamic> _$$BudgetImplToJson(_$BudgetImpl instance) =>
       'period_month': instance.periodMonth,
       'period_year': instance.periodYear,
       'carry_over': instance.carryOver,
+      'notes': instance.notes,
       'created_at': instance.createdAt?.toIso8601String(),
       'updated_at': instance.updatedAt?.toIso8601String(),
     };

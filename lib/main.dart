@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:intl/date_symbol_data_local.dart';
 // import 'package:firebase_core/firebase_core.dart';
 import 'core/services/supabase_service.dart';
 import 'app.dart';
@@ -18,6 +19,9 @@ void main() async {
 
   // init Supabase
   await SupabaseService().init();
+
+  // init locale
+  await initializeDateFormatting('id_ID', null);
   
   // Sentry aktif hanya jika dijalankan dengan:
   // flutter run --dart-define=SENTRY_DSN=<dsn-dari-PRD-04>

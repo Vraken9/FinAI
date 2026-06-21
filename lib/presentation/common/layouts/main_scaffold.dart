@@ -53,10 +53,12 @@ class MainScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentIndex = _calculateSelectedIndex(context);
+    final currentPath = GoRouterState.of(context).uri.path;
+    final isBudgetScreen = currentPath.startsWith('/budget');
 
     return Scaffold(
       body: child,
-      floatingActionButton: (currentIndex == 0 || currentIndex == 1 || currentIndex == 2)
+      floatingActionButton: (currentIndex == 0 || currentIndex == 1 || currentIndex == 2) && !isBudgetScreen
           ? FloatingActionButton(
               onPressed: () => context.push('/transaction/add'),
               backgroundColor: AppColors.primaryAccent,

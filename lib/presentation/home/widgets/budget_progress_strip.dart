@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../providers/budget_provider.dart';
 
@@ -13,21 +14,25 @@ class BudgetProgressStrip extends ConsumerWidget {
     return budgetState.when(
       data: (budgets) {
         if (budgets.isEmpty) {
-          return Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            padding: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-            ),
-            child: const Center(
-              child: Column(
-                children: [
-                  Icon(Icons.account_balance_wallet_outlined, size: 32, color: Colors.grey),
-                  SizedBox(height: 8),
-                  Text('Belum ada anggaran diatur', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                ],
+          return InkWell(
+            onTap: () => context.push('/budget'),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+              ),
+              child: const Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.account_balance_wallet_outlined, size: 32, color: Colors.grey),
+                    SizedBox(height: 8),
+                    Text('Belum ada anggaran diatur. Ketuk untuk mengatur.', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  ],
+                ),
               ),
             ),
           );
@@ -42,40 +47,57 @@ class BudgetProgressStrip extends ConsumerWidget {
         
         final topBudgets = sortedBudgets.take(3).toList();
 
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.budgetWarning),
-                  SizedBox(width: 8),
-                  Text(
-                    'Perhatian Anggaran',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+        return InkWell(
+          onTap: () => context.push('/budget'),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.budgetWarning),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Perhatian Anggaran',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ...topBudgets.map((b) {
-                final percentage = (b.spentAmount ?? 0) / b.amount;
-                return _buildStrip(
-                  name: b.categoryName ?? 'Kategori',
-                  percentage: percentage,
-                );
-              }),
-            ],
+                    const Text(
+                      'Atur',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ...topBudgets.map((b) {
+                  final percentage = (b.spentAmount ?? 0) / b.amount;
+                  return _buildStrip(
+                    name: b.categoryName ?? 'Kategori',
+                    percentage: percentage,
+                  );
+                }),
+              ],
+            ),
           ),
         );
       },

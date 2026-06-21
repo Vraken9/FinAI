@@ -27,6 +27,7 @@ mixin _$Budget {
   int get periodMonth => throw _privateConstructorUsedError;
   int get periodYear => throw _privateConstructorUsedError;
   bool get carryOver => throw _privateConstructorUsedError;
+  String? get notes => throw _privateConstructorUsedError;
   DateTime? get createdAt => throw _privateConstructorUsedError;
   DateTime? get updatedAt => throw _privateConstructorUsedError; // View fields
 // ignore: invalid_annotation_target
@@ -60,6 +61,7 @@ abstract class $BudgetCopyWith<$Res> {
       int periodMonth,
       int periodYear,
       bool carryOver,
+      String? notes,
       DateTime? createdAt,
       DateTime? updatedAt,
       @JsonKey(includeFromJson: true, includeToJson: false)
@@ -91,6 +93,7 @@ class _$BudgetCopyWithImpl<$Res, $Val extends Budget>
     Object? periodMonth = null,
     Object? periodYear = null,
     Object? carryOver = null,
+    Object? notes = freezed,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
     Object? categoryName = freezed,
@@ -127,6 +130,10 @@ class _$BudgetCopyWithImpl<$Res, $Val extends Budget>
           ? _value.carryOver
           : carryOver // ignore: cast_nullable_to_non_nullable
               as bool,
+      notes: freezed == notes
+          ? _value.notes
+          : notes // ignore: cast_nullable_to_non_nullable
+              as String?,
       createdAt: freezed == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -170,6 +177,7 @@ abstract class _$$BudgetImplCopyWith<$Res> implements $BudgetCopyWith<$Res> {
       int periodMonth,
       int periodYear,
       bool carryOver,
+      String? notes,
       DateTime? createdAt,
       DateTime? updatedAt,
       @JsonKey(includeFromJson: true, includeToJson: false)
@@ -199,6 +207,7 @@ class __$$BudgetImplCopyWithImpl<$Res>
     Object? periodMonth = null,
     Object? periodYear = null,
     Object? carryOver = null,
+    Object? notes = freezed,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
     Object? categoryName = freezed,
@@ -235,6 +244,10 @@ class __$$BudgetImplCopyWithImpl<$Res>
           ? _value.carryOver
           : carryOver // ignore: cast_nullable_to_non_nullable
               as bool,
+      notes: freezed == notes
+          ? _value.notes
+          : notes // ignore: cast_nullable_to_non_nullable
+              as String?,
       createdAt: freezed == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -275,6 +288,7 @@ class _$BudgetImpl implements _Budget {
       required this.periodMonth,
       required this.periodYear,
       this.carryOver = false,
+      this.notes,
       this.createdAt,
       this.updatedAt,
       @JsonKey(includeFromJson: true, includeToJson: false) this.categoryName,
@@ -301,6 +315,8 @@ class _$BudgetImpl implements _Budget {
   @JsonKey()
   final bool carryOver;
   @override
+  final String? notes;
+  @override
   final DateTime? createdAt;
   @override
   final DateTime? updatedAt;
@@ -324,7 +340,7 @@ class _$BudgetImpl implements _Budget {
 
   @override
   String toString() {
-    return 'Budget(id: $id, userId: $userId, categoryId: $categoryId, amount: $amount, periodMonth: $periodMonth, periodYear: $periodYear, carryOver: $carryOver, createdAt: $createdAt, updatedAt: $updatedAt, categoryName: $categoryName, categoryIcon: $categoryIcon, categoryColor: $categoryColor, spentAmount: $spentAmount)';
+    return 'Budget(id: $id, userId: $userId, categoryId: $categoryId, amount: $amount, periodMonth: $periodMonth, periodYear: $periodYear, carryOver: $carryOver, notes: $notes, createdAt: $createdAt, updatedAt: $updatedAt, categoryName: $categoryName, categoryIcon: $categoryIcon, categoryColor: $categoryColor, spentAmount: $spentAmount)';
   }
 
   @override
@@ -343,6 +359,7 @@ class _$BudgetImpl implements _Budget {
                 other.periodYear == periodYear) &&
             (identical(other.carryOver, carryOver) ||
                 other.carryOver == carryOver) &&
+            (identical(other.notes, notes) || other.notes == notes) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -368,6 +385,7 @@ class _$BudgetImpl implements _Budget {
       periodMonth,
       periodYear,
       carryOver,
+      notes,
       createdAt,
       updatedAt,
       categoryName,
@@ -398,6 +416,7 @@ abstract class _Budget implements Budget {
       required final int periodMonth,
       required final int periodYear,
       final bool carryOver,
+      final String? notes,
       final DateTime? createdAt,
       final DateTime? updatedAt,
       @JsonKey(includeFromJson: true, includeToJson: false)
@@ -425,6 +444,8 @@ abstract class _Budget implements Budget {
   int get periodYear;
   @override
   bool get carryOver;
+  @override
+  String? get notes;
   @override
   DateTime? get createdAt;
   @override

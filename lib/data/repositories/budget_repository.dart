@@ -14,7 +14,13 @@ class BudgetRepository {
         .eq('period_month', month)
         .eq('period_year', year);
 
-    return response.map((json) => Budget.fromJson(json)).toList();
+    return response.map((json) {
+      final map = Map<String, dynamic>.from(json);
+      if (map['budget_amount'] != null) {
+        map['amount'] = map['budget_amount'];
+      }
+      return Budget.fromJson(map);
+    }).toList();
   }
 
   Future<Budget> createBudget(Budget budget) async {

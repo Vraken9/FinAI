@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/extensions/currency_extension.dart';
@@ -44,15 +45,22 @@ class ExpenseDonutChart extends ConsumerWidget {
             height: 200,
             child: PieChart(
               PieChartData(
+                pieTouchData: PieTouchData(
+                  enabled: true,
+                  touchCallback: (FlTouchEvent event, pieTouchResponse) {},
+                ),
                 sectionsSpace: 2,
                 centerSpaceRadius: 60,
                 sections: data.map((item) {
                   final colorStr = item['color'] as String;
                   final color = Color(int.parse(colorStr.replaceFirst('#', '0xFF')));
+                  final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
                   return PieChartSectionData(
                     color: color,
                     value: (item['amount'] as int).toDouble(),
-                    title: '', // Sembunyikan title di donut, pakai legend di bawah
+                    title: currencyFormat.format(item['amount']),
+                    titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                    showTitle: true,
                     radius: 20,
                   );
                 }).toList(),

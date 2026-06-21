@@ -15,6 +15,7 @@ class Budget with _$Budget {
     required int periodMonth,
     required int periodYear,
     @Default(false) bool carryOver,
+    String? notes,
     DateTime? createdAt,
     DateTime? updatedAt,
     

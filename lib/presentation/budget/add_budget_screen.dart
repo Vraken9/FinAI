@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
+import '../../core/utils/currency_input_formatter.dart';
 import '../../data/models/budget.dart';
 import '../../data/models/category.dart' as model_category;
 import '../../providers/budget_provider.dart';
@@ -18,12 +20,14 @@ class AddBudgetScreen extends ConsumerStatefulWidget {
 class _AddBudgetScreenState extends ConsumerState<AddBudgetScreen> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
+  final _notesController = TextEditingController();
   model_category.Category? _selectedCategory;
   bool _isLoading = false;
 
   @override
   void dispose() {
     _amountController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -36,7 +40,8 @@ class _AddBudgetScreenState extends ConsumerState<AddBudgetScreen> {
       return;
     }
 
-    final amount = int.tryParse(_amountController.text) ?? 0;
+    final rawAmount = _amountController.text.replaceAll(RegExp(r'[^\d]'), '');
+    final amount = int.tryParse(rawAmount) ?? 0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Nominal harus lebih dari 0')),
@@ -65,6 +70,7 @@ class _AddBudgetScreenState extends ConsumerState<AddBudgetScreen> {
         periodMonth: notifier.currentMonth,
         periodYear: notifier.currentYear,
         amount: amount,
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -110,7 +116,7 @@ class _AddBudgetScreenState extends ConsumerState<AddBudgetScreen> {
                   ),
                   const SizedBox(height: 8),
                   CategoryPicker(
-                    transactionType: 'EXPENSE', // Budget selalu pengeluaran
+                    transactionType: 'expense', // Budget selalu pengeluaran
                     selectedCategory: _selectedCategory,
                     onSelected: (model_category.Category category) {
                       setState(() {
@@ -129,6 +135,10 @@ class _AddBudgetScreenState extends ConsumerState<AddBudgetScreen> {
                     controller: _amountController,
                     keyboardType: TextInputType.number,
                     style: AppTextStyles.amountLarge.copyWith(fontSize: 24),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      CurrencyInputFormatter(),
+                    ],
                     decoration: InputDecoration(
                       prefixText: 'Rp ',
                       hintText: '0',
@@ -144,11 +154,33 @@ class _AddBudgetScreenState extends ConsumerState<AddBudgetScreen> {
                       if (value == null || value.isEmpty) {
                         return 'Nominal tidak boleh kosong';
                       }
-                      if (int.tryParse(value) == null) {
+                      final rawValue = value.replaceAll(RegExp(r'[^\d]'), '');
+                      if (int.tryParse(rawValue) == null || int.parse(rawValue) <= 0) {
                         return 'Nominal tidak valid';
                       }
                       return null;
                     },
+                  ),
+                  const SizedBox(height: 24),
+
+                  Text(
+                    'Catatan / Detail (Opsional)',
+                    style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _notesController,
+                    decoration: InputDecoration(
+                      hintText: 'Contoh: Listrik, Air PDAM, dll',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.surface,
+                      contentPadding: const EdgeInsets.all(16),
+                    ),
+                    maxLines: 2,
                   ),
                   const SizedBox(height: 32),
                   
