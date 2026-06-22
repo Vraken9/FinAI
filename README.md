@@ -3,7 +3,7 @@
 FinAI adalah sistem manajemen keuangan pribadi berbasis komputasi cerdas (Artificial Intelligence) yang dirancang untuk memfasilitasi pencatatan, pemantauan, dan perencanaan sirkulasi kas pengguna. Aplikasi ini mengotomatisasi proses ekstraksi data transaksi dan menyediakan analitik deskriptif untuk mendukung pengambilan keputusan finansial yang lebih terukur.
 
 **Video Demonstrasi Aplikasi:**  
-[Tautan Video Demonstrasi FinAI](#) *(Silakan sisipkan tautan YouTube atau Google Drive pada bagian ini)*
+[Tautan Video Demonstrasi FinAI](#) **
 
 ---
 
