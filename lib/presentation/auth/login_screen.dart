@@ -125,13 +125,50 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: _isLoading 
                         ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Text('Masuk'),
                     ),
                     
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        const Expanded(child: Divider()),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Text('ATAU', style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                        ),
+                        const Expanded(child: Divider()),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    OutlinedButton.icon(
+                      onPressed: _isLoading ? null : () async {
+                        setState(() => _isLoading = true);
+                        try {
+                          await ref.read(authNotifierProvider.notifier).loginWithGoogle();
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Gagal login dengan Google'), backgroundColor: AppColors.expense),
+                          );
+                        } finally {
+                          if (mounted) setState(() => _isLoading = false);
+                        }
+                      },
+                      icon: Image.network('https://developers.google.com/identity/images/g-logo.png', height: 24),
+                      label: Text('Masuk dengan Google', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        side: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 32),
                     TextButton(
                       onPressed: _isLoading ? null : () => context.push('/auth/register'),
                       child: const Text('Belum punya akun? Daftar di sini'),

@@ -45,26 +45,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (!mounted) return;
 
       if (result == RegisterResult.needsEmailConfirmation) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            title: const Text('Cek Email Kamu'),
-            content: const Text(
-              'Kami sudah mengirim link konfirmasi ke email kamu. '
-              'Silakan klik link tersebut, lalu login kembali.'
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context); // tutup dialog
-                  context.go('/auth/login'); // ke halaman login
-                },
-                child: const Text('Ke Halaman Login'),
-              ),
-            ],
-          ),
-        );
+        context.push('/auth/verify-otp', extra: _emailController.text.trim());
       }
     } on AppException catch (e) {
       if (!mounted) return;

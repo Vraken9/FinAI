@@ -11,6 +11,7 @@ import '../../presentation/common/layouts/main_scaffold.dart';
 import '../../providers/auth_provider.dart';
 import '../../presentation/auth/login_screen.dart';
 import '../../presentation/auth/register_screen.dart';
+import '../../presentation/auth/otp_verification_screen.dart';
 import '../../presentation/auth/pin_lock_screen.dart';
 import '../../presentation/onboarding/welcome_screen.dart';
 import '../../presentation/onboarding/setup_assets_screen.dart';
@@ -73,6 +74,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/pin-lock', builder: (context, state) => const PinLockScreen()),
       GoRoute(path: '/auth/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/auth/register', builder: (context, state) => const RegisterScreen()),
+      GoRoute(
+        path: '/auth/verify-otp',
+        builder: (context, state) => OtpVerificationScreen(email: state.extra as String? ?? ''),
+      ),
       GoRoute(path: '/onboarding', builder: (context, state) => const WelcomeScreen()),
       GoRoute(path: '/onboarding/setup-assets', builder: (context, state) => const SetupAssetsScreen()),
       

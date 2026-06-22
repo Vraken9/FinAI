@@ -1,6 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supa;
 import '../data/repositories/auth_repository.dart';
 import '../data/models/user_profile.dart';
+import '../../core/services/supabase_service.dart';
 
 part 'auth_provider.g.dart';
 
@@ -45,14 +47,40 @@ class AuthNotifier extends _$AuthNotifier {
   @override
   AuthState build() {
     _repository = AuthRepository();
+    
+    // Listen to deep links / background auth state changes
+    SupabaseService().client.auth.onAuthStateChange.listen((data) {
+      final supa.AuthChangeEvent event = data.event;
+      final supa.Session? session = data.session;
+      
+      if (event == supa.AuthChangeEvent.signedIn && session != null) {
+        if (!state.isLoggedIn) {
+          _fetchProfile();
+          state = state.copyWith(isLoggedIn: true, isLoadingAuth: false);
+        }
+      } else if (event == supa.AuthChangeEvent.signedOut) {
+        state = AuthState(isLoadingAuth: false);
+      }
+    });
+
     final user = _repository.getCurrentUser();
     
     if (user == null) {
       return AuthState(isLoadingAuth: false, isLoggedIn: false);
     } else {
-      _fetchProfile(); // fire-and-forget AMAN karena ada 'await' di dalamnya
-      return AuthState(isLoadingAuth: false, isLoggedIn: true);
+      _fetchProfileInitial();
+      return AuthState(isLoadingAuth: true, isLoggedIn: true);
     }
+  }
+
+  Future<void> _fetchProfileInitial() async {
+    final profile = await _repository.getProfile();
+    state = state.copyWith(
+      profile: profile,
+      isOnboarded: profile?.onboardingCompleted ?? false,
+      isPinLocked: profile?.pinHash != null,
+      isLoadingAuth: false,
+    );
   }
 
   Future<void> _fetchProfile() async {
@@ -82,13 +110,21 @@ class AuthNotifier extends _$AuthNotifier {
     }
   }
 
+  Future<void> verifyOtp(String email, String token) async {
+    final response = await _repository.verifyEmailOtp(email, token);
+    if (response.session != null) {
+      _fetchProfile();
+      state = state.copyWith(isLoggedIn: true, isLoadingAuth: false);
+    }
+  }
+
   Future<void> loginWithGoogle() async {
     await _repository.signInWithGoogle();
   }
 
   Future<void> logout() async {
     await _repository.signOut();
-    state = AuthState();
+    state = AuthState(isLoadingAuth: false);
   }
 
   Future<void> completeOnboarding() async {

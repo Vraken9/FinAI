@@ -32,7 +32,6 @@ class HomeScreen extends ConsumerWidget {
                     SummaryCardsRow(),
                     SizedBox(height: 16),
                     AiDailyInsight(),
-                    HealthScoreWidget(),
                     BudgetProgressStrip(),
                     DraftRecurringBanner(),
                     UpcomingRecurringWidget(),

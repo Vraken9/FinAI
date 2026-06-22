@@ -55,9 +55,29 @@ class AuthRepository {
 
   Future<bool> signInWithGoogle() async {
     try {
-      return await _client.auth.signInWithOAuth(OAuthProvider.google);
+      return await _client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'finai://callback/',
+      );
     } catch (e) {
       throw ApiException('Gagal login dengan Google', code: 'OAUTH_ERROR');
+    }
+  }
+
+  Future<AuthResponse> verifyEmailOtp(String email, String token) async {
+    try {
+      return await _client.auth.verifyOTP(
+        type: OtpType.signup,
+        token: token,
+        email: email,
+      );
+    } on AuthException catch (e) {
+      if (e.message.toLowerCase().contains('invalid')) {
+        throw ApiException('Kode OTP tidak valid atau kadaluarsa', code: 'INVALID_OTP');
+      }
+      throw ApiException(e.message, code: 'AUTH_ERROR');
+    } catch (e) {
+      throw NetworkException('Tidak ada koneksi jaringan, periksa koneksi Anda.');
     }
   }
 
