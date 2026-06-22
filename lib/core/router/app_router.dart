@@ -29,6 +29,7 @@ import '../../presentation/budget/add_budget_screen.dart';
 import '../../presentation/settings/settings_screen.dart';
 import '../../presentation/settings/manage_assets_screen.dart';
 import '../../presentation/settings/manage_categories_screen.dart';
+import '../../presentation/settings/export_screen.dart';
 import '../../presentation/settings/import_screen.dart';
 import '../../presentation/settings/feedback_screen.dart';
 import '../../presentation/recurring/recurring_screen.dart';
@@ -60,7 +61,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (!isLoggedIn && !isAuthRoute) return '/auth/login';
       if (isLoggedIn && isPinLocked && state.uri.path != '/pin-lock') return '/pin-lock';
       if (isLoggedIn && !isPinLocked && !isOnboarded && !state.uri.path.startsWith('/onboarding')) return '/onboarding';
-      if (isLoggedIn && !isPinLocked && isOnboarded && state.uri.path.startsWith('/onboarding')) return '/home';
+      if (isLoggedIn && !isPinLocked && isOnboarded && (state.uri.path.startsWith('/onboarding') || state.uri.path == '/pin-lock' || state.uri.path == '/splash')) return '/home';
       
       // Prevent going to login when already logged in
       if (isLoggedIn && isAuthRoute) return '/home';
@@ -129,6 +130,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: '/settings/assets', builder: (context, state) => const ManageAssetsScreen()),
           GoRoute(path: '/settings/categories', builder: (context, state) => const ManageCategoriesScreen()),
+          GoRoute(path: '/settings/export', builder: (context, state) => const ExportScreen()),
           GoRoute(path: '/settings/import', builder: (context, state) => const ImportScreen()),
           GoRoute(
             path: '/settings/feedback',

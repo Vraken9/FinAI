@@ -22,6 +22,8 @@ class ExpenseDonutChart extends ConsumerWidget {
       );
     }
 
+    final double totalExpense = data.fold(0.0, (sum, item) => sum + (item['amount'] as int).toDouble());
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0),
       padding: const EdgeInsets.all(16),
@@ -43,57 +45,99 @@ class ExpenseDonutChart extends ConsumerWidget {
           const SizedBox(height: 24),
           SizedBox(
             height: 200,
-            child: PieChart(
-              PieChartData(
-                pieTouchData: PieTouchData(
-                  enabled: true,
-                  touchCallback: (FlTouchEvent event, pieTouchResponse) {},
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Total',
+                      style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      totalExpense.toCurrency(),
+                      style: AppTextStyles.headline1.copyWith(fontSize: 16),
+                    ),
+                  ],
                 ),
-                sectionsSpace: 2,
-                centerSpaceRadius: 60,
-                sections: data.map((item) {
-                  final colorStr = item['color'] as String;
-                  final color = Color(int.parse(colorStr.replaceFirst('#', '0xFF')));
-                  final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
-                  return PieChartSectionData(
-                    color: color,
-                    value: (item['amount'] as int).toDouble(),
-                    title: currencyFormat.format(item['amount']),
-                    titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-                    showTitle: true,
-                    radius: 20,
-                  );
-                }).toList(),
-              ),
+                PieChart(
+                  PieChartData(
+                    pieTouchData: PieTouchData(
+                      enabled: true,
+                    ),
+                    sectionsSpace: 4,
+                    centerSpaceRadius: 70,
+                    sections: data.map((item) {
+                      final colorStr = item['color'] as String;
+                      final color = Color(int.parse(colorStr.replaceFirst('#', '0xFF')));
+                      final amount = (item['amount'] as int).toDouble();
+                      final percentage = (amount / totalExpense) * 100;
+                      
+                      return PieChartSectionData(
+                        color: color,
+                        value: amount,
+                        title: percentage > 5 ? '${percentage.toStringAsFixed(1)}%' : '',
+                        titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                        showTitle: percentage > 5,
+                        radius: 20,
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           Column(
             children: data.map((item) {
               final colorStr = item['color'] as String;
               final color = Color(int.parse(colorStr.replaceFirst('#', '0xFF')));
+              final amount = item['amount'] as int;
+              final percentage = (amount / totalExpense) * 100;
+
               return Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Row(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Column(
                   children: [
-                    Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            item['category'] as String,
+                            style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        Text(
+                          '${percentage.toStringAsFixed(1)}%',
+                          style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          amount.toCurrency(),
+                          style: AppTextStyles.body.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        item['category'] as String,
-                        style: AppTextStyles.body,
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: percentage / 100,
+                        backgroundColor: color.withValues(alpha: 0.1),
+                        valueColor: AlwaysStoppedAnimation<Color>(color),
+                        minHeight: 6,
                       ),
-                    ),
-                    Text(
-                      (item['amount'] as int).toCurrency(),
-                      style: AppTextStyles.body.copyWith(fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),

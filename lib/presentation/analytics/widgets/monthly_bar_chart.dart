@@ -38,7 +38,24 @@ class MonthlyBarChart extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Perbandingan Bulanan', style: AppTextStyles.headline1.copyWith(fontSize: 18)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Perbandingan Bulanan', style: AppTextStyles.headline1.copyWith(fontSize: 16)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Builder(
+            builder: (context) {
+              final avgIncome = data.isEmpty ? 0.0 : data.fold<double>(0, (sum, item) => sum + (item['income'] as int)) / data.length;
+              final avgExpense = data.isEmpty ? 0.0 : data.fold<double>(0, (sum, item) => sum + (item['expense'] as int)) / data.length;
+              final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+              return Text(
+                'Rata-rata bulanan: ${currencyFormat.format(avgIncome)} (Masuk) | ${currencyFormat.format(avgExpense)} (Keluar)',
+                style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary, fontSize: 11),
+              );
+            }
+          ),
           const SizedBox(height: 24),
           SizedBox(
             height: 200,
@@ -57,9 +74,17 @@ class MonthlyBarChart extends ConsumerWidget {
                     getTooltipColor: (group) => AppColors.surface,
                     getTooltipItem: (group, groupIndex, rod, rodIndex) {
                       final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+                      final monthName = data[group.x.toInt()]['month'] as String;
+                      final typeLabel = rodIndex == 0 ? 'Masuk' : 'Keluar';
                       return BarTooltipItem(
-                        currencyFormat.format(rod.toY),
-                        TextStyle(color: rod.color, fontWeight: FontWeight.bold, fontSize: 12),
+                        '$monthName ($typeLabel)\n',
+                        AppTextStyles.caption.copyWith(color: AppColors.textSecondary, fontSize: 10),
+                        children: [
+                          TextSpan(
+                            text: currencyFormat.format(rod.toY),
+                            style: TextStyle(color: rod.color, fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                        ],
                       );
                     },
                   ),
@@ -99,20 +124,38 @@ class MonthlyBarChart extends ConsumerWidget {
                 borderData: FlBorderData(show: false),
                 barGroups: List.generate(data.length, (index) {
                   final item = data[index];
+                  // Menghitung maxY lokal (bar ini) terhadap global max untuk background track
+                  final maxVal = data.fold<double>(0, (prev, i) {
+                    final inc = (i['income'] as int).toDouble();
+                    final exp = (i['expense'] as int).toDouble();
+                    final m = inc > exp ? inc : exp;
+                    return m > prev ? m : prev;
+                  }) * 1.15;
+
                   return BarChartGroupData(
                     x: index,
                     barRods: [
                       BarChartRodData(
                         toY: (item['income'] as int).toDouble(),
                         color: AppColors.income,
-                        width: 8,
-                        borderRadius: const BorderRadius.only(topLeft: Radius.circular(4), topRight: Radius.circular(4)),
+                        width: 12,
+                        borderRadius: BorderRadius.circular(6),
+                        backDrawRodData: BackgroundBarChartRodData(
+                          show: true,
+                          toY: maxVal == 0 ? 100 : maxVal,
+                          color: Colors.grey.withValues(alpha: 0.08),
+                        ),
                       ),
                       BarChartRodData(
                         toY: (item['expense'] as int).toDouble(),
                         color: AppColors.expense,
-                        width: 8,
-                        borderRadius: const BorderRadius.only(topLeft: Radius.circular(4), topRight: Radius.circular(4)),
+                        width: 12,
+                        borderRadius: BorderRadius.circular(6),
+                        backDrawRodData: BackgroundBarChartRodData(
+                          show: true,
+                          toY: maxVal == 0 ? 100 : maxVal,
+                          color: Colors.grey.withValues(alpha: 0.08),
+                        ),
                       ),
                     ],
                   );

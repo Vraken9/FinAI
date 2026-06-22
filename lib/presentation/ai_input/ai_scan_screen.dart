@@ -61,6 +61,8 @@ class _AiScanScreenState extends ConsumerState<AiScanScreen> {
     if (_controller == null || !_controller!.value.isInitialized || _controller!.value.isTakingPicture) return;
 
     try {
+      // CameraController's takePicture saves at the set resolution preset (high = 720p).
+      // This is generally safe enough (< 1MB).
       final XFile image = await _controller!.takePicture();
       setState(() {
         _imageFile = File(image.path);
@@ -77,7 +79,12 @@ class _AiScanScreenState extends ConsumerState<AiScanScreen> {
   Future<void> _pickFromGallery() async {
     try {
       final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+        maxWidth: 1200,
+        maxHeight: 1200,
+      );
       if (pickedFile != null) {
         setState(() {
           _imageFile = File(pickedFile.path);

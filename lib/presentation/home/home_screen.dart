@@ -8,6 +8,7 @@ import 'widgets/health_score_widget.dart';
 import 'widgets/budget_progress_strip.dart';
 import 'widgets/upcoming_recurring.dart';
 import 'widgets/recent_transactions.dart';
+import 'widgets/draft_recurring_banner.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -33,6 +34,7 @@ class HomeScreen extends ConsumerWidget {
                     AiDailyInsight(),
                     HealthScoreWidget(),
                     BudgetProgressStrip(),
+                    DraftRecurringBanner(),
                     UpcomingRecurringWidget(),
                     DailyExpenseChart(),
                     RecentTransactions(),

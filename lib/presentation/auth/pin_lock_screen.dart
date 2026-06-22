@@ -25,6 +25,9 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
   }
 
   Future<void> _checkBiometric() async {
+    final profile = ref.read(authNotifierProvider).profile;
+    if (profile?.biometricEnabled != true) return;
+
     try {
       final bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
       final bool canAuthenticate = canAuthenticateWithBiometrics || await auth.isDeviceSupported();
@@ -70,8 +73,8 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
   }
 
   void _verifyPin() {
-    // For now mock verify.
-    if (_pin == '123456') {
+    final profile = ref.read(authNotifierProvider).profile;
+    if (profile != null && _pin == profile.pinHash) {
       ref.read(authNotifierProvider.notifier).unlockPin();
     } else {
       setState(() {

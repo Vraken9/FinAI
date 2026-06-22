@@ -46,20 +46,26 @@ serve(async (req) => {
     }), { status: 429 });
   }
 
-  const formData = await req.formData();
-  const imageFile = formData.get("image") as File;
-  const defaultAssetId = formData.get("default_asset_id") as string;
+  let imageBase64 = "";
+  let defaultAssetId = "";
+  let mimeType = "image/jpeg";
 
-  if (!imageFile) {
+  try {
+    const body = await req.json();
+    imageBase64 = body.image_base64;
+    defaultAssetId = body.default_asset_id;
+    if (body.mime_type) mimeType = body.mime_type;
+  } catch (e) {
+    return new Response(JSON.stringify({
+      success: false, error: "Format request tidak valid. Harap gunakan JSON.", code: "VALIDATION_ERROR"
+    }), { status: 400 });
+  }
+
+  if (!imageBase64) {
     return new Response(JSON.stringify({
       success: false, error: "File gambar tidak ditemukan.", code: "VALIDATION_ERROR"
     }), { status: 422 });
   }
-
-  // Encode gambar ke base64
-  const imageBuffer = await imageFile.arrayBuffer();
-  const imageBase64 = uint8ArrayToBase64(new Uint8Array(imageBuffer));
-  const mimeType = imageFile.type || "image/jpeg";
 
   // Ambil kategori dan aset user
   const { data: categories, error: categoriesError } = await supabase
@@ -161,9 +167,15 @@ Balas HANYA dengan JSON valid tanpa markdown:
     // Upload foto ke Supabase Storage untuk dilampirkan ke transaksi
     const fileName = `receipt_${Date.now()}.${mimeType.split("/")[1]}`;
     const storagePath = `${user.id}/pending/${fileName}`;
+    
+    // Decode base64 secara efisien menggunakan native fetch (menghindari OOM/CPU timeout)
+    const dataUri = `data:${mimeType};base64,${imageBase64}`;
+    const fetchRes = await fetch(dataUri);
+    const imageBuffer = await fetchRes.arrayBuffer();
+
     await supabase.storage
       .from("transaction-attachments")
-      .upload(storagePath, imageFile, { contentType: mimeType });
+      .upload(storagePath, imageBuffer, { contentType: mimeType });
 
     await logAiUsage(user.id, "parse_image");
 

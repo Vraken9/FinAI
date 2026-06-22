@@ -36,10 +36,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     ref.read(authNotifierProvider.notifier).updateProfile({key: value});
   }
 
-  void _exportExcel() async {
-    final transactions = ref.read(transactionNotifierProvider).valueOrNull ?? [];
-    await ExportService.exportToExcel(context, transactions);
-  }
 
   void _logout() async {
     final confirm = await showDialog<bool>(
@@ -55,6 +51,56 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (confirm == true) {
       ref.read(authNotifierProvider.notifier).logout();
     }
+  }
+
+  Future<String?> _showSetPinDialog(BuildContext context) async {
+    String tempPin = '';
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Buat PIN Keamanan'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Masukkan 6 digit angka untuk PIN Anda.'),
+                  const SizedBox(height: 16),
+                  TextField(
+                    autofocus: true,
+                    keyboardType: TextInputType.number,
+                    obscureText: true,
+                    maxLength: 6,
+                    onChanged: (val) {
+                      setState(() {
+                        tempPin = val;
+                      });
+                    },
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: '******',
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Batal'),
+                ),
+                ElevatedButton(
+                  onPressed: tempPin.length == 6
+                      ? () => Navigator.pop(context, tempPin)
+                      : null,
+                  child: const Text('Simpan'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget _buildSectionHeader(String title) {
@@ -164,13 +210,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.download_outlined),
             title: const Text('Export ke Excel'),
-            onTap: _exportExcel,
+            onTap: () => context.push('/settings/export'),
           ),
           ListTile(
             leading: const Icon(Icons.upload_outlined),
             title: const Text('Import dari Excel'),
             onTap: () => context.push('/settings/import'),
           ),
+
+          _buildSectionHeader('Keamanan'),
+          SwitchListTile(
+            secondary: const Icon(Icons.lock_outline),
+            title: const Text('Kunci Aplikasi dengan PIN'),
+            value: profile.pinHash != null,
+            activeThumbColor: AppColors.primary,
+            onChanged: (val) async {
+              if (val) {
+                // Tampilkan dialog set PIN
+                final newPin = await _showSetPinDialog(context);
+                if (newPin != null && newPin.length == 6) {
+                  _updateProfile('pin_hash', newPin);
+                }
+              } else {
+                // Matikan PIN dan Biometric
+                _updateProfile('pin_hash', null);
+                _updateProfile('biometric_enabled', false);
+              }
+            },
+          ),
+          if (profile.pinHash != null)
+            SwitchListTile(
+              secondary: const Icon(Icons.fingerprint),
+              title: const Text('Autentikasi Biometrik'),
+              subtitle: const Text('Gunakan sidik jari / wajah'),
+              value: profile.biometricEnabled,
+              activeThumbColor: AppColors.primary,
+              onChanged: (val) => _updateProfile('biometric_enabled', val),
+            ),
 
           _buildSectionHeader('Notifikasi'),
           SwitchListTile(

@@ -46,20 +46,26 @@ serve(async (req) => {
     }), { status: 429 });
   }
 
-  const formData = await req.formData();
-  const audioFile = formData.get("audio") as File;
-  const defaultAssetId = formData.get("default_asset_id") as string;
+  let audioBase64 = "";
+  let defaultAssetId = "";
+  let mimeType = "audio/webm";
 
-  if (!audioFile) {
+  try {
+    const body = await req.json();
+    audioBase64 = body.audio_base64;
+    defaultAssetId = body.default_asset_id;
+    if (body.mime_type) mimeType = body.mime_type;
+  } catch (e) {
+    return new Response(JSON.stringify({
+      success: false, error: "Format request tidak valid. Harap gunakan JSON.", code: "VALIDATION_ERROR"
+    }), { status: 400 });
+  }
+
+  if (!audioBase64) {
     return new Response(JSON.stringify({
       success: false, error: "File audio tidak ditemukan.", code: "VALIDATION_ERROR"
     }), { status: 422 });
   }
-
-  // Encode audio ke base64
-  const audioBuffer = await audioFile.arrayBuffer();
-  const audioBase64 = uint8ArrayToBase64(new Uint8Array(audioBuffer));
-  const mimeType = audioFile.type || "audio/webm"; // fallback jika mime tidak terdeteksi
 
   // Ambil kategori dan aset user
   const { data: categories, error: categoriesError } = await supabase

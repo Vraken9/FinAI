@@ -40,7 +40,25 @@ class IncomeExpenseLineChart extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Tren Pemasukan & Pengeluaran', style: AppTextStyles.headline1.copyWith(fontSize: 18)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Tren Pemasukan & Pengeluaran', style: AppTextStyles.headline1.copyWith(fontSize: 16)),
+              // Bisa tambahkan tombol filter atau detail di sini nanti
+            ],
+          ),
+          const SizedBox(height: 8),
+          Builder(
+            builder: (context) {
+              final avgIncome = incomeData.isEmpty ? 0.0 : incomeData.fold<double>(0, (sum, item) => sum + item['amount']) / incomeData.length;
+              final avgExpense = expenseData.isEmpty ? 0.0 : expenseData.fold<double>(0, (sum, item) => sum + item['amount']) / expenseData.length;
+              final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+              return Text(
+                'Rata-rata harian: ${currencyFormat.format(avgIncome)} (Masuk) | ${currencyFormat.format(avgExpense)} (Keluar)',
+                style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary, fontSize: 11),
+              );
+            }
+          ),
           const SizedBox(height: 24),
           SizedBox(
             height: 200,
@@ -54,8 +72,14 @@ class IncomeExpenseLineChart extends ConsumerWidget {
                       return touchedSpots.map((spot) {
                         final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
                         return LineTooltipItem(
-                          currencyFormat.format(spot.y),
-                          TextStyle(color: spot.bar.color, fontWeight: FontWeight.bold, fontSize: 12),
+                          'Tgl ${spot.x.toInt()}\n',
+                          AppTextStyles.caption.copyWith(color: AppColors.textSecondary, fontSize: 10),
+                          children: [
+                            TextSpan(
+                              text: currencyFormat.format(spot.y),
+                              style: TextStyle(color: spot.bar.color, fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          ],
                         );
                       }).toList();
                     },
@@ -67,6 +91,7 @@ class IncomeExpenseLineChart extends ConsumerWidget {
                   getDrawingHorizontalLine: (value) => FlLine(
                     color: Colors.grey.withValues(alpha: 0.1),
                     strokeWidth: 1,
+                    dashArray: [4, 4], // Dashed line for cleaner look
                   ),
                 ),
                 titlesData: FlTitlesData(
@@ -76,13 +101,18 @@ class IncomeExpenseLineChart extends ConsumerWidget {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 22,
+                      reservedSize: 30,
+                      interval: 1,
                       getTitlesWidget: (value, meta) {
+                        // Only show specific days to avoid clutter
+                        if (value.toInt() % 5 != 0 && value.toInt() != 1 && value.toInt() != 31) {
+                          return const SizedBox.shrink();
+                        }
                         return Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
+                          padding: const EdgeInsets.only(top: 10.0),
                           child: Text(
                             '${value.toInt()}',
-                            style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                            style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary, fontSize: 11),
                           ),
                         );
                       },
@@ -94,25 +124,41 @@ class IncomeExpenseLineChart extends ConsumerWidget {
                   LineChartBarData(
                     spots: incomeData.map((e) => FlSpot((e['day'] as int).toDouble(), (e['amount'] as int).toDouble())).toList(),
                     isCurved: true,
+                    curveSmoothness: 0.35,
                     color: AppColors.income,
                     barWidth: 3,
                     isStrokeCapRound: true,
                     dotData: FlDotData(show: false),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: AppColors.income.withValues(alpha: 0.1),
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.income.withValues(alpha: 0.3),
+                          AppColors.income.withValues(alpha: 0.0),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
                     ),
                   ),
                   LineChartBarData(
                     spots: expenseData.map((e) => FlSpot((e['day'] as int).toDouble(), (e['amount'] as int).toDouble())).toList(),
                     isCurved: true,
+                    curveSmoothness: 0.35,
                     color: AppColors.expense,
                     barWidth: 3,
                     isStrokeCapRound: true,
                     dotData: FlDotData(show: false),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: AppColors.expense.withValues(alpha: 0.1),
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.expense.withValues(alpha: 0.3),
+                          AppColors.expense.withValues(alpha: 0.0),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
                     ),
                   ),
                 ],

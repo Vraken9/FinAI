@@ -15,7 +15,8 @@ class TransactionNotifier extends _$TransactionNotifier {
   }
 
   Future<List<Transaction>> _fetchTransactions() async {
-    return await _repository.getTransactions();
+    // Memuat lebih banyak transaksi agar data Analitik untuk 6 bulan ke belakang (atau lebih) bisa dihitung dengan lengkap
+    return await _repository.getTransactions(limit: 2000);
   }
 
   Future<void> refresh() async {

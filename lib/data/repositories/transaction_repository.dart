@@ -18,6 +18,20 @@ class TransactionRepository {
     return response.map((json) => Transaction.fromJson(json)).toList();
   }
 
+  Future<List<Transaction>> getTransactionsByDateRange(DateTime start, DateTime end) async {
+    // End date is inclusive, so we add 1 day and use <
+    final nextDay = end.add(const Duration(days: 1));
+    final response = await _client
+        .from('transactions')
+        .select('*, category:categories(*), asset:assets!transactions_asset_id_fkey(*), transferToAsset:assets!transactions_transfer_to_asset_id_fkey(*), attachments:transaction_attachments(*)')
+        .isFilter('deleted_at', null)
+        .gte('transaction_date', start.toIso8601String())
+        .lt('transaction_date', nextDay.toIso8601String())
+        .order('transaction_date', ascending: false);
+
+    return response.map((json) => Transaction.fromJson(json)).toList();
+  }
+
   Future<Transaction> addTransaction(Transaction transaction) async {
     final Map<String, dynamic> data = transaction.toJson();
     data.remove('id');

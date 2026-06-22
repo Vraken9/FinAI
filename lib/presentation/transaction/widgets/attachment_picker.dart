@@ -23,7 +23,12 @@ class _AttachmentPickerState extends State<AttachmentPicker> {
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final XFile? image = await _picker.pickImage(source: source);
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        imageQuality: 70,
+        maxWidth: 1200,
+        maxHeight: 1200,
+      );
       if (image != null) {
         final newList = List<File>.from(widget.attachments)..add(File(image.path));
         widget.onChanged(newList);

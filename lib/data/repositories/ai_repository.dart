@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
-import 'package:dio/dio.dart' as dio;
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
 import '../../core/exceptions/app_exception.dart';
 import '../../core/services/supabase_service.dart';
@@ -10,15 +8,9 @@ import '../models/parsed_transaction.dart';
 
 class AiRepository {
   final SupabaseClient _client;
-  final dio.Dio _dio;
 
   AiRepository()
-      : _client = SupabaseService().client,
-        _dio = dio.Dio(dio.BaseOptions(
-          connectTimeout: const Duration(seconds: 45),
-          receiveTimeout: const Duration(seconds: 45),
-          sendTimeout: const Duration(seconds: 45),
-        ));
+      : _client = SupabaseService().client;
 
   String? get _accessToken {
     return _client.auth.currentSession?.accessToken;
@@ -60,84 +52,80 @@ class AiRepository {
   }
 
   Future<ParsedTransaction> parseVoice(File audioFile, String defaultAssetId) async {
-    return _parseMultipart('ai-parse-voice', 'audio', audioFile, defaultAssetId);
+    return _parseWithInvoke('ai-parse-voice', 'audio_base64', audioFile, defaultAssetId);
   }
 
   Future<ParsedTransaction> parseImage(File imageFile, String defaultAssetId) async {
-    return _parseMultipart('ai-parse-image', 'image', imageFile, defaultAssetId);
+    return _parseWithInvoke('ai-parse-image', 'image_base64', imageFile, defaultAssetId);
   }
 
-  Future<ParsedTransaction> _parseMultipart(String functionName, String fileField, File file, String defaultAssetId) async {
+  Future<ParsedTransaction> _parseWithInvoke(String functionName, String fileField, File file, String defaultAssetId) async {
     _checkAuth();
 
-    final baseUrl = dotenv.env['SUPABASE_URL'];
-    if (baseUrl == null || baseUrl.isEmpty) {
-      throw ApiException(
-        'Konfigurasi aplikasi tidak lengkap. Hubungi developer.',
-        code: 'CONFIG_ERROR',
-      );
-    }
-    final url = '$baseUrl/functions/v1/$functionName';
-    
     try {
-      final formData = dio.FormData.fromMap({
-        'default_asset_id': defaultAssetId,
-        fileField: await dio.MultipartFile.fromFile(file.path),
-      });
+      final bytes = await file.readAsBytes();
+      final base64String = base64Encode(bytes);
 
-      final response = await _dio.post(
-        url,
-        data: formData,
-        options: dio.Options(
-          headers: {
-            'Authorization': 'Bearer $_accessToken',
-            'apikey': dotenv.env['SUPABASE_ANON_KEY'] ?? '',
-          },
-        ),
+      final response = await _client.functions.invoke(
+        functionName,
+        body: {
+          'default_asset_id': defaultAssetId,
+          fileField: base64String,
+          'mime_type': _getMimeType(file.path, fileField),
+        },
       );
 
       final data = response.data;
-      if (data['success'] == true && data['data'] != null) {
+      if (data != null && data['success'] == true && data['data'] != null) {
         return ParsedTransaction.fromJson(data['data']);
       } else {
-        throw ApiException(data['error'] ?? 'Gagal memproses request', code: data['code'] ?? 'PARSE_FAILED');
+        final err = data?['error'] ?? 'Gagal memproses request';
+        final code = data?['code'] ?? 'PARSE_FAILED';
+        throw ApiException(err.toString(), code: code.toString());
       }
-    } on dio.DioException catch (e) {
-      debugPrint('DioException in _parseMultipart: Type: ${e.type}, Status: ${e.response?.statusCode}, Data: ${e.response?.data}, Message: ${e.message}');
+    } on FunctionException catch (e) {
+      debugPrint('FunctionException in _parseWithInvoke: Status: ${e.status}, Details: ${e.details}');
       
-      if (e.type == dio.DioExceptionType.connectionTimeout || 
-          e.type == dio.DioExceptionType.receiveTimeout || 
-          e.type == dio.DioExceptionType.sendTimeout) {
-        throw ApiException('Koneksi timeout, periksa internet kamu dan coba lagi', code: 'NETWORK_TIMEOUT');
-      } else if (e.type == dio.DioExceptionType.connectionError) {
-        throw ApiException('Tidak ada koneksi internet', code: 'NETWORK_ERROR');
-      } else if (e.type == dio.DioExceptionType.badResponse) {
-        final responseData = e.response?.data;
-      if (responseData is Map && responseData['error'] != null) {
-        throw ApiException(
-          responseData['error'] as String,
-          code: responseData['code'] as String? ?? 'PARSE_FAILED',
-        );
-      } else if (responseData is String) {
-        try {
-          final decoded = jsonDecode(responseData);
-          if (decoded is Map && decoded['error'] != null) {
-            throw ApiException(
-              decoded['error'] as String,
-              code: decoded['code'] as String? ?? 'PARSE_FAILED',
-            );
+      // Coba tangkap error detail dari JSON
+      try {
+        if (e.details != null && e.details is Map) {
+          final errorMsg = e.details['error'];
+          final code = e.details['code'];
+          if (errorMsg != null) {
+            throw ApiException(errorMsg.toString(), code: code?.toString() ?? 'EXTERNAL_API_ERROR');
           }
-        } catch (_) {}
-      }
-      } // <-- missing brace for badResponse block
+        }
+      } catch (_) {}
       
-      throw ApiException('Layanan AI sedang sibuk. Coba lagi.', code: 'UNKNOWN');
+      throw ApiException('Layanan AI gagal merespon dengan benar. Coba lagi.', code: 'EXTERNAL_API_ERROR');
     } catch (e, stackTrace) {
-      debugPrint('Error in _parseMultipart: $e\n$stackTrace');
+      debugPrint('Error in _parseWithInvoke: $e\n$stackTrace');
       if (e is ApiException) rethrow;
       throw ApiException('Terjadi kesalahan tidak terduga', code: 'UNKNOWN');
     }
   }
+
+  String _getMimeType(String path, String fileField) {
+    final ext = path.split('.').last.toLowerCase();
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'm4a':
+        return 'audio/m4a';
+      case 'mp3':
+        return 'audio/mpeg';
+      case 'wav':
+        return 'audio/wav';
+      case 'webm':
+        return 'audio/webm';
+      default:
+        return fileField == 'image_base64' ? 'image/jpeg' : 'audio/webm'; // fallback
+    }
+  }
+
 
   Future<String> sendChatMessage(String message, List<Map<String, dynamic>> history) async {
     _checkAuth();
