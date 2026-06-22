@@ -1,34 +1,47 @@
-# FinAI - Asisten Keuangan Pribadi Berbasis AI 🚀
+# FinAI - Intelligent Personal Financial Assistant
 
-FinAI adalah aplikasi pelacak dan perencana keuangan pribadi yang dilengkapi dengan kecerdasan buatan (AI) untuk membantu Anda mencatat pengeluaran, mengatur anggaran, dan memberikan wawasan cerdas (*smart insights*) tentang kebiasaan finansial Anda.
+FinAI adalah sistem manajemen keuangan pribadi berbasis komputasi cerdas (Artificial Intelligence) yang dirancang untuk memfasilitasi pencatatan, pemantauan, dan perencanaan sirkulasi kas pengguna. Aplikasi ini mengotomatisasi proses ekstraksi data transaksi dan menyediakan analitik deskriptif untuk mendukung pengambilan keputusan finansial yang lebih terukur.
 
-> **🎥 Demo Aplikasi:**  
-> [KLIK DI SINI UNTUK MENONTON VIDEO DEMO FINAI](#) *(Masukkan link YouTube/Google Drive Anda di sini)*
-
----
-
-## ✨ Fitur Unggulan
-1. **Pencatatan Cerdas (AI Scan & Voice)**: Catat transaksi hanya dengan memotret struk belanja atau mengucapkan nominal pengeluaran. AI akan mengekstrak nominal, kategori, dan pedagang secara otomatis.
-2. **Analitik Interaktif**: Visualisasi *Donut Chart* dan *Bar Chart* yang memanjakan mata untuk melacak arus kas bulanan.
-3. **Pengingat Rutin**: Sistem pengingat untuk tagihan bulanan (listrik, internet, cicilan) secara otomatis.
-4. **Anggaran Terpusat**: Buat batas pengeluaran bulanan dan dapatkan peringatan (*alert*) jika sudah mendekati limit.
-5. **Autentikasi Aman**: Mendukung *Google Sign-In*, Verifikasi Email OTP 6-Digit, serta keamanan ganda berupa PIN & Sidik Jari (Biometrik).
-6. **Ekspor/Impor Excel**: Kendali penuh atas data Anda. Ekspor riwayat ke `.xlsx` atau pindahkan data dari aplikasi lain dengan mudah.
+**Video Demonstrasi Aplikasi:**  
+[Tautan Video Demonstrasi FinAI](#) *(Silakan sisipkan tautan YouTube atau Google Drive pada bagian ini)*
 
 ---
 
-## 🛠️ Teknologi yang Digunakan
-- **Frontend**: Flutter (Dart) & Riverpod (State Management)
-- **Backend**: Supabase (PostgreSQL, Auth, Storage)
-- **AI Processing**: Deno Edge Functions & Google Gemini API
-- **Charts**: `fl_chart`
-- **Routing**: `go_router`
+## Deskripsi Fungsionalitas Utama
+
+1. **Pencatatan Berbasis Kecerdasan Buatan (AI-Driven Data Entry)**
+   FinAI dilengkapi dengan modul pemrosesan citra dan suara. Pengguna dapat mengunggah foto struk transaksi atau merekam input suara. Sistem akan memproses data tersebut menggunakan model pemrosesan bahasa alami (Natural Language Processing) untuk mengekstrak nominal, kategori pengeluaran, serta detail pedagang secara terotomatisasi.
+
+2. **Analitik Finansial Deskriptif**
+   Data transaksi yang telah terekam akan divisualisasikan melalui grafik interaktif (distribusi proporsional dan tren linier). Visualisasi ini menyajikan rincian arus kas bulanan secara komprehensif, memfasilitasi pemahaman struktur pengeluaran secara empiris.
+
+3. **Sistem Manajemen Tagihan Berkala**
+   Sistem ini mengakomodasi penjadwalan transaksi berulang, seperti tagihan utilitas publik atau kewajiban pinjaman. Aplikasi akan memberikan peringatan sistem (notifikasi) secara otomatis pada siklus penagihan yang telah ditentukan.
+
+4. **Pembatasan Anggaran (Budget Thresholding)**
+   Pengguna dapat mengalokasikan batas pengeluaran spesifik untuk setiap kategori operasional. FinAI memantau realisasi anggaran secara seketika (real-time) dan akan menerbitkan peringatan apabila pengeluaran mendekati atau melampaui batas yang telah dikonfigurasi.
+
+5. **Arsitektur Autentikasi dan Keamanan**
+   Protokol akses sistem mendukung integrasi Single Sign-On (SSO) melalui akun Google, serta autentikasi hibrida berbasis One-Time Password (OTP) 6 digit via alamat email. Keamanan tingkat peranti klien diperkuat melalui lapisan autentikasi Personal Identification Number (PIN) dan pengenalan data biometrik (seperti pemindaian sidik jari).
+
+6. **Interoperabilitas Data (Ekspor/Impor)**
+   Untuk memastikan kedaulatan data pengguna, FinAI menyediakan fungsi ekspor dan impor data operasional ke dalam format spreadsheet terstandarisasi (.xlsx).
 
 ---
 
-## 🗄️ Skema Database (Supabase)
+## Tumpukan Teknologi (Technology Stack)
 
-Aplikasi ini menggunakan sistem Relational Database (RDBMS) dengan keamanan Row Level Security (RLS) di setiap tabel.
+- **Antarmuka Pengguna (Frontend):** Flutter (Dart) terintegrasi dengan arsitektur State Management Riverpod.
+- **Infrastruktur Backend:** Supabase (mengimplementasikan PostgreSQL, modul Autentikasi, dan Object Storage).
+- **Layanan Pemrosesan AI:** Deno Edge Functions terintegrasi dengan Google Gemini API.
+- **Visualisasi Data:** Pustaka `fl_chart`.
+- **Manajemen Navigasi:** Pustaka `go_router`.
+
+---
+
+## Skema Relasional Basis Data (Supabase)
+
+Sistem ini didesain menggunakan paradigma Relational Database Management System (RDBMS). Keamanan tingkat baris data (Row Level Security/RLS) diterapkan secara ketat pada seluruh tabel operasional guna mencegah modifikasi maupun akses data yang tidak sah.
 
 ```mermaid
 erDiagram
@@ -47,17 +60,19 @@ erDiagram
     recurring_transactions }o--|| assets : "deducted from"
 ```
 
-### Penjelasan Tabel Inti:
-1. `user_profiles`: Menyimpan data preferensi pengguna (Tema, PIN Hash, Status Onboarding).
-2. `categories`: Kategori pemasukan/pengeluaran (Makanan, Transportasi, Gaji). Kategori default tersedia otomatis.
-3. `assets`: Dompet atau Rekening bank pengguna (BCA, Gopay, Tunai).
-4. `transactions`: Tabel utama pencatatan arus kas (Nominal, Tipe, Tanggal, dan Catatan).
-5. `budgets`: Target anggaran bulanan per kategori.
-6. `recurring_transactions`: Cetak biru (*blueprint*) untuk tagihan berulang.
+### Penjabaran Entitas Basis Data:
+1. **user_profiles**: Menyimpan preferensi spesifik entitas pengguna (konfigurasi tema, hash PIN keamanan, dan rekam jejak penyelesaian orientasi sistem).
+2. **categories**: Tabel referensial untuk klasifikasi arus kas (seperti konsumsi, transportasi, pendapatan). Sistem menyediakan data referensi awal secara otomatis.
+3. **assets**: Mewakili entitas penyimpan nilai tukar pengguna (rekening perbankan, dompet digital, kas tunai).
+4. **transactions**: Entitas sentral yang mendokumentasikan arus perpindahan dana (besaran, tipe, stempel waktu, dan keterangan tekstual).
+5. **budgets**: Mencatat plafon finansial yang didefinisikan pengguna untuk entitas kategori tertentu.
+6. **recurring_transactions**: Mencatat spesifikasi operasional untuk transaksi yang dieksekusi secara repetitif pada periode tertentu.
 
 ---
 
-## 🏗️ UML Architecture (Simplified)
+## Diagram Arsitektur Perangkat Lunak
+
+Arsitektur aplikasi klien disusun dengan memisahkan lapisan antarmuka, lapisan pengelola status (State), dan lapisan repositori guna menjamin modularitas dan kemudahan pengujian.
 
 ```mermaid
 classDiagram
@@ -87,4 +102,4 @@ classDiagram
 
 ---
 
-> Dibuat dengan penuh dedikasi untuk Manajemen Keuangan Pribadi yang lebih cerdas. 💸✨
+Dokumen ini disusun sebagai representasi arsitektur dan kapabilitas fungsional FinAI dalam mewujudkan integrasi teknologi kecerdasan buatan pada ranah manajemen keuangan pribadi.
