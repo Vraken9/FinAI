@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callGemini, uint8ArrayToBase64 } from "../_shared/gemini.ts";
+import { callGemini, extractJSON } from "../_shared/gemini.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -13,6 +13,7 @@ async function checkDailyAiUsage(userId: string): Promise<number> {
     .from("ai_messages")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
+    .in("input_type", ["image", "voice"])  // HANYA hitung scan + voice
     .gte("created_at", today);
   return count ?? 0;
 }
@@ -94,28 +95,10 @@ serve(async (req) => {
 
   // Satu request ke Gemini: transkripsi + parse sekaligus
   const prompt = `Dengarkan audio ini. Pengguna sedang menyebutkan transaksi keuangan dalam bahasa Indonesia.
-
-Tugas kamu:
-1. Transkripsi apa yang diucapkan
-2. Ekstrak informasi transaksi dari ucapan tersebut
-
-Kategori tersedia: ${categoryList}
-Daftar Dompet/Aset yang tersedia: ${assetList}
-Aturan: nominal tanpa mata uang = Rupiah, "rb/ribu" = x1000, "jt/juta" = x1.000.000, default tipe = expense, jika pengguna menyebut sumber dana (misal: "bayar pakai BCA") masukkan ke asset_name, jika tidak sebut aset sama sekali biarkan asset_name null.
-
-Balas HANYA dengan JSON valid tanpa markdown:
-{
-  "transcription": string ucapan pengguna,
-  "type": "income" atau "expense",
-  "amount": integer Rupiah,
-  "category_name": string dari daftar kategori,
-  "asset_name": string dari daftar dompet/aset (atau null jika tidak ada),
-  "note": string max 100 karakter,
-  "description": string max 200 karakter,
-  "merchant": string atau null,
-  "confidence": angka 0-1,
-  "ambiguity": string atau null
-}`;
+Transkripsi apa yang diucapkan dan ekstrak informasi transaksi.
+Balas HANYA dengan JSON, tanpa penjelasan apapun.
+Format: {transcription, type, amount (integer rupiah), category_name, note, merchant, asset_name (nama dompet/bank jika disebutkan, opsional)}
+Jika tidak bisa dipahami, balas: {error: true}`;
 
   let rawText = "";
   try {
@@ -128,19 +111,51 @@ Balas HANYA dengan JSON valid tanpa markdown:
           { text: prompt },
         ],
       }],
-      generationConfig: { maxOutputTokens: 600 },
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "OBJECT",
+          properties: {
+            transcription: { type: "STRING" },
+            type: { type: "STRING", enum: ["income", "expense", "transfer"] },
+            amount: { type: "INTEGER" },
+            category_name: { type: "STRING" },
+            note: { type: "STRING" },
+            merchant: { type: "STRING" },
+            asset_name: { type: "STRING" }
+          },
+          required: ["transcription", "type", "amount"]
+        }
+      },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
     return new Response(JSON.stringify({
       success: false,
-      error: "Gagal memproses audio. Layanan AI sedang sibuk atau error.",
+      error: `Gagal memproses audio. Layanan AI sedang sibuk atau error: ${error.message}`,
       code: "EXTERNAL_API_ERROR",
-    }), { status: 422 });
+    }), { status: 422, headers: { "Content-Type": "application/json" } });
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(rawText);
+  } catch {
+    // Fallback: coba bersihkan dulu
+    try {
+      const cleaned = extractJSON(rawText);
+      parsed = JSON.parse(cleaned);
+    } catch (e: any) {
+      console.error("rawText yang gagal diparse:", rawText);
+      return new Response(JSON.stringify({
+        success: false,
+        error: `Suara tidak dapat diproses. Error: ${e.message}`,
+        code: "PARSE_FAILED",
+      }), { status: 422, headers: { "Content-Type": "application/json" } });
+    }
   }
 
   try {
-    const parsed = JSON.parse(rawText.trim());
     const matchedCategory = safeCategories.find(c =>
       c.name.toLowerCase() === parsed.category_name?.toLowerCase()
     );
@@ -178,11 +193,11 @@ Balas HANYA dengan JSON valid tanpa markdown:
       warning: parsed.ambiguity,
     }), { headers: { "Content-Type": "application/json" } });
 
-  } catch {
+  } catch (e: any) {
     return new Response(JSON.stringify({
       success: false,
-      error: "Suara tidak dapat diproses. Coba ucapkan lebih jelas atau isi manual.",
+      error: `Suara tidak dapat diproses. Error: ${e.message}`,
       code: "PARSE_FAILED",
-    }), { status: 422 });
+    }), { status: 422, headers: { "Content-Type": "application/json" } });
   }
 });

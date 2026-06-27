@@ -6,9 +6,9 @@ import 'package:uuid/uuid.dart';
 
 void main() async {
   print('Loading environment variables...');
-  final envFile = File('.env');
+  final envFile = File('.env.backend');
   if (!await envFile.exists()) {
-    print('Error: .env file not found!');
+    print('Error: .env.backend file not found!');
     return;
   }
 

@@ -32,14 +32,31 @@ export async function callGemini(params: {
         body: JSON.stringify(body),
       });
 
-      if (response.status === 503 && attempt < retries) {
-        // Tunggu sebentar sebelum retry (exponential backoff sederhana)
-        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
-        continue;
-      }
-
       if (!response.ok) {
         const err = await response.json();
+        
+        // Smart retry for 429 Rate Limit
+        if (response.status === 429) {
+          const retryInfo = err?.error?.details?.find(
+            (d: any) => d['@type']?.includes('RetryInfo')
+          );
+          const delaySeconds = retryInfo?.retryDelay
+            ? parseInt(retryInfo.retryDelay) + 1
+            : 30; // Default 30 detik
+          
+          if (attempt < retries) {
+            console.log(`Rate limited. Menunggu ${delaySeconds} detik sebelum percobaan ulang...`);
+            await new Promise(r => setTimeout(r, delaySeconds * 1000));
+            continue;
+          }
+        }
+        
+        // Simple backoff for 503 Service Unavailable
+        if (response.status === 503 && attempt < retries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+          continue;
+        }
+
         throw new Error(`Gemini API error ${response.status}: ${JSON.stringify(err)}`);
       }
 
@@ -74,4 +91,27 @@ export function uint8ArrayToBase64(bytes: Uint8Array): string {
     binary += String.fromCharCode(...chunk);
   }
   return btoa(binary);
+}
+
+export function extractJSON(raw: string): string {
+  // 1. Coba temukan blok JSON pertama yang valid di dalam teks
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("Tidak ada JSON ditemukan di response");
+  
+  let jsonStr = jsonMatch[0];
+  
+  // 2. Hapus komentar JS (// ... dan /* ... */)
+  jsonStr = jsonStr.replace(/\/\/[^\n]*\n/g, ' ');
+  jsonStr = jsonStr.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  
+  // 3. Hapus trailing comma sebelum } atau ]
+  jsonStr = jsonStr.replace(/,(\s*[}\]])/g, '$1');
+  
+  // 4. Coba parse — jika gagal, kembalikan error yang jelas
+  try {
+    JSON.parse(jsonStr);
+    return jsonStr;
+  } catch (e: any) {
+    throw new Error("JSON tidak valid setelah pembersihan: " + e.message);
+  }
 }

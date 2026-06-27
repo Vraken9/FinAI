@@ -47,6 +47,7 @@ app.*.map.json
 # Custom ignores
 .env
 *.env
+.env*
 .flutter-plugins
 supabase/.temp/
 *.jks

@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { callGemini, uint8ArrayToBase64 } from "../_shared/gemini.ts";
+import { callGemini, extractJSON } from "../_shared/gemini.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -13,6 +13,7 @@ async function checkDailyAiUsage(userId: string): Promise<number> {
     .from("ai_messages")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
+    .in("input_type", ["image", "voice"])  // HANYA hitung scan + voice
     .gte("created_at", today);
   return count ?? 0;
 }
@@ -33,7 +34,7 @@ serve(async (req) => {
   );
   if (authError || !user) {
     return new Response(JSON.stringify({ success: false, error: "Unauthorized", code: "UNAUTHORIZED" }), 
-      { status: 401 });
+      { status: 401, headers: { "Content-Type": "application/json" } });
   }
 
   const todayUsage = await checkDailyAiUsage(user.id);
@@ -43,7 +44,7 @@ serve(async (req) => {
       success: false,
       error: "Batas penggunaan AI harian tercapai. Coba lagi besok.",
       code: "RATE_LIMITED"
-    }), { status: 429 });
+    }), { status: 429, headers: { "Content-Type": "application/json" } });
   }
 
   let imageBase64 = "";
@@ -58,13 +59,13 @@ serve(async (req) => {
   } catch (e) {
     return new Response(JSON.stringify({
       success: false, error: "Format request tidak valid. Harap gunakan JSON.", code: "VALIDATION_ERROR"
-    }), { status: 400 });
+    }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
   if (!imageBase64) {
     return new Response(JSON.stringify({
       success: false, error: "File gambar tidak ditemukan.", code: "VALIDATION_ERROR"
-    }), { status: 422 });
+    }), { status: 422, headers: { "Content-Type": "application/json" } });
   }
 
   // Ambil kategori dan aset user
@@ -93,36 +94,10 @@ serve(async (req) => {
   const assetList = safeAssets.map(a => `${a.name} (${a.asset_type})`).join(", ");
 
   // Satu request ke Gemini: baca struk + parse sekaligus
-  const prompt = `Lihat gambar struk/nota/invoice ini dengan teliti.
-
-Tugas kamu:
-1. Baca semua teks yang ada di struk
-2. Ekstrak informasi transaksi dari struk tersebut
-
-Yang perlu dicari:
-- TOTAL AKHIR pembayaran (bukan subtotal atau harga per item)
-- Nama toko/merchant (biasanya di header struk)
-- Tanggal dan waktu transaksi (jika ada)
-- Item-item yang dibeli (untuk dimasukkan ke deskripsi)
-- Metode pembayaran jika disebutkan (misal: "BCA", "GoPay", "Debit")
-
-Kategori tersedia: ${categoryList}
-Daftar Dompet/Aset yang tersedia: ${assetList}
-Aturan: jika tanggal tidak ada gunakan hari ini, gunakan TOTAL AKHIR bukan jumlah item. Jika metode pembayaran yang tercetak di struk cocok dengan salah satu aset, masukkan ke asset_name, jika tidak biarkan null.
-
-Balas HANYA dengan JSON valid tanpa markdown:
-{
-  "type": "expense",
-  "amount": integer Rupiah total akhir,
-  "category_name": string dari daftar kategori,
-  "asset_name": string dari daftar dompet/aset (atau null jika tidak ada),
-  "note": string nama merchant + ringkasan max 100 karakter,
-  "description": string daftar item yang dibeli max 300 karakter,
-  "merchant": string nama toko atau null,
-  "transaction_date": string ISO timestamp atau null jika tidak ada di struk,
-  "confidence": angka 0-1 seberapa jelas struk terbaca,
-  "ambiguity": string atau null jika ada yang tidak terbaca jelas
-}`;
+  const prompt = `Ekstrak informasi transaksi dari foto struk ini.
+Balas HANYA dengan JSON, tanpa penjelasan apapun.
+Format: {type, amount (integer rupiah, contoh: 140000), category_name, note (deskripsi singkat), merchant, asset_name (nama dompet/bank jika disebutkan, opsional)}
+Jika tidak bisa dibaca, balas: {error: true}`;
 
   let rawText = "";
   try {
@@ -135,19 +110,50 @@ Balas HANYA dengan JSON valid tanpa markdown:
           { text: prompt },
         ],
       }],
-      generationConfig: { maxOutputTokens: 700 },
+      generationConfig: { 
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "OBJECT",
+          properties: {
+            type: { type: "STRING", enum: ["income", "expense", "transfer"] },
+            amount: { type: "INTEGER" },
+            category_name: { type: "STRING" },
+            note: { type: "STRING" },
+            merchant: { type: "STRING" },
+            asset_name: { type: "STRING" }
+          },
+          required: ["type", "amount"]
+        }
+      },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
     return new Response(JSON.stringify({
       success: false,
-      error: "Gagal memproses gambar. Layanan AI sedang sibuk atau error.",
+      error: `Gemini Error: ${error.message}`,
       code: "EXTERNAL_API_ERROR",
-    }), { status: 422 });
+    }), { status: 422, headers: { "Content-Type": "application/json" } });
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(rawText);
+  } catch {
+    // Fallback: coba bersihkan dulu
+    try {
+      const cleaned = extractJSON(rawText);
+      parsed = JSON.parse(cleaned);
+    } catch (e: any) {
+      console.error("rawText yang gagal diparse:", rawText);
+      return new Response(JSON.stringify({
+        success: false,
+        error: `Gagal parse JSON. Error: ${e.message}`,
+        code: "PARSE_FAILED",
+      }), { status: 422, headers: { "Content-Type": "application/json" } });
+    }
   }
 
   try {
-    const parsed = JSON.parse(rawText.trim());
     const matchedCategory = safeCategories.find(c =>
       c.name.toLowerCase() === parsed.category_name?.toLowerCase()
     );
@@ -164,18 +170,21 @@ Balas HANYA dengan JSON valid tanpa markdown:
       }
     }
 
-    // Upload foto ke Supabase Storage untuk dilampirkan ke transaksi
-    const fileName = `receipt_${Date.now()}.${mimeType.split("/")[1]}`;
-    const storagePath = `${user.id}/pending/${fileName}`;
-    
-    // Decode base64 secara efisien menggunakan native fetch (menghindari OOM/CPU timeout)
-    const dataUri = `data:${mimeType};base64,${imageBase64}`;
-    const fetchRes = await fetch(dataUri);
-    const imageBuffer = await fetchRes.arrayBuffer();
-
-    await supabase.storage
-      .from("transaction-attachments")
-      .upload(storagePath, imageBuffer, { contentType: mimeType });
+    // Upload storage — jika gagal, TETAP lanjut tapi tanpa attachment
+    let storagePath: string | null = null;
+    try {
+      const fileName = `receipt_${Date.now()}.${mimeType.split("/")[1]}`;
+      storagePath = `${user.id}/pending/${fileName}`;
+      const dataUri = `data:${mimeType};base64,${imageBase64}`;
+      const fetchRes = await fetch(dataUri);
+      const imageBuffer = await fetchRes.arrayBuffer();
+      await supabase.storage
+        .from("transaction-attachments")
+        .upload(storagePath, imageBuffer, { contentType: mimeType });
+    } catch (uploadError: any) {
+      console.error("Upload storage gagal (non-fatal):", uploadError);
+      storagePath = null; // Transaksi tetap bisa disimpan tanpa attachment
+    }
 
     await logAiUsage(user.id, "parse_image");
 
@@ -198,11 +207,11 @@ Balas HANYA dengan JSON valid tanpa markdown:
       warning: parsed.ambiguity,
     }), { headers: { "Content-Type": "application/json" } });
 
-  } catch {
+  } catch (e: any) {
     return new Response(JSON.stringify({
       success: false,
-      error: "Struk tidak dapat dibaca. Pastikan foto cukup jelas dan terang, atau isi manual.",
+      error: `Gagal parse JSON. Teks AI: ${rawText.substring(0, 150)}... Error: ${e.message}`,
       code: "PARSE_FAILED",
-    }), { status: 422 });
+    }), { status: 422, headers: { "Content-Type": "application/json" } });
   }
 });

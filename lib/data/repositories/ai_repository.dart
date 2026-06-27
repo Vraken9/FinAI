@@ -86,18 +86,11 @@ class AiRepository {
     } on FunctionException catch (e) {
       debugPrint('FunctionException in _parseWithInvoke: Status: ${e.status}, Details: ${e.details}');
       
-      // Coba tangkap error detail dari JSON
-      try {
-        if (e.details != null && e.details is Map) {
-          final errorMsg = e.details['error'];
-          final code = e.details['code'];
-          if (errorMsg != null) {
-            throw ApiException(errorMsg.toString(), code: code?.toString() ?? 'EXTERNAL_API_ERROR');
-          }
-        }
-      } catch (_) {}
-      
-      throw ApiException('Layanan AI gagal merespon dengan benar. Coba lagi.', code: 'EXTERNAL_API_ERROR');
+      final detailStr = e.details is Map
+        ? (e.details as Map)['error']?.toString() ?? jsonEncode(e.details)
+        : e.details?.toString() ?? e.reasonPhrase ?? 'No details';
+      String fallbackMsg = 'AI Error (HTTP ${e.status}): $detailStr';
+      throw ApiException(fallbackMsg, code: 'EXTERNAL_API_ERROR');
     } catch (e, stackTrace) {
       debugPrint('Error in _parseWithInvoke: $e\n$stackTrace');
       if (e is ApiException) rethrow;
