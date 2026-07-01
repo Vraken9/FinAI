@@ -16,7 +16,7 @@ Built with modern mobile architecture and multimodal artificial intelligence
 
 ---
 
-**[Demo Video](#-demo-aplikasi)** | **[Instalasi](#-instalasi--cara-menjalankan)** | **[Arsitektur](#-arsitektur-sistem)** | **[Tech Stack](#-technology-stack--library)**
+**[Demo Video](#demo-aplikasi)** | **[Instalasi](#instalasi--cara-menjalankan)** | **[Arsitektur](#arsitektur-sistem)** | **[Tech Stack](#technology-stack--library)**
 
 </div>
 
